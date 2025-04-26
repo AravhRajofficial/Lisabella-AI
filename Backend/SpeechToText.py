@@ -106,16 +106,22 @@ def UniversalTranslator(Text):
     return english_translation.capitalize()
 
 # Function to perform speech recognition using the WebDriver.
+import time
+
 def SpeechRecognition():
     driver.get("file:///" + Link)
+    time.sleep(2)  # wait for page to load
+
     driver.find_element(By.ID, "start").click()
+
+    print("Listening... Speak something!")
 
     while True:
         try:
-            Text = driver.find_element(By.ID, "output").text  # <-- Fetch recognized text
+            Text = driver.find_element(By.ID, "output").text
 
-            if Text.strip():
-                driver.find_element(By.ID, "end").click()  # <-- Stop only after getting text
+            if Text.strip():  # if some text is recognized
+                driver.find_element(By.ID, "end").click()
 
                 if InputLanguage.lower() == "en" or "en" in InputLanguage.lower():
                     return QueryModifier(Text)
@@ -124,6 +130,7 @@ def SpeechRecognition():
                     return QueryModifier(UniversalTranslator(Text))
         except Exception as e:
             pass
+
 
 # Main execution block.
 if __name__=="__main__":
