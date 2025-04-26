@@ -107,25 +107,19 @@ def UniversalTranslator(Text):
 
 # Function to perform speech recognition using the WebDriver.
 def SpeechRecognition():
-    # Open the HTML file in the browser.
     driver.get("file:///" + Link)
-    # Start speech recognition by clicking the start button.
-    driver.find_element(by=By.ID, value="start").click()
+    driver.find_element(By.ID, "start").click()
 
-    while True :
+    while True:
         try:
-            # Get the recognized text from the HTML output element.
-            Text = driver.find_element(By.ID, "output").text()
+            Text = driver.find_element(By.ID, "output").text  # <-- Fetch recognized text
 
-            if Text:
-                # Stop the recognition by clicking the stop button.
-                driver.find_element(by=By.ID, value="end").click()
+            if Text.strip():
+                driver.find_element(By.ID, "end").click()  # <-- Stop only after getting text
 
-                # If the input language is english, return the modified query.
                 if InputLanguage.lower() == "en" or "en" in InputLanguage.lower():
                     return QueryModifier(Text)
                 else:
-                    # If the input language is not english, translate the text and return it.
                     SetAssistantStatus("Translating...")
                     return QueryModifier(UniversalTranslator(Text))
         except Exception as e:
