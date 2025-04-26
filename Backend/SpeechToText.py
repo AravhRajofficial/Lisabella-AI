@@ -115,7 +115,7 @@ def SpeechRecognition():
     while True :
         try:
             # Get the recognized text from the HTML output element.
-            Text = driver.find_element(by=By.ID, value="end").click()
+            Text = driver.find_element(By.ID, "output").text()
 
             if Text:
                 # Stop the recognition by clicking the stop button.
