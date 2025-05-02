@@ -166,5 +166,37 @@
     {
         "role": "assistant",
         "content": "According to the real-time information I have, I can tell you that today is Saturday, April 26, 2025. Unfortunately, I don't have access to specific weather information for your location. However, I can suggest you check a weather app or website for the most accurate and up-to-date weather information for your area!"
+    },
+    {
+        "role": "user",
+        "content": " tell me the stock price of persistent"
+    },
+    {
+        "role": "assistant",
+        "content": "According to the real-time information I have, the current stock price of Persistent Systems Ltd. is \u20b94,439.95. Please note that stock prices can fluctuate rapidly and may change by the time you check. For the most up-to-date and accurate information, I recommend checking a reliable financial website or app."
+    },
+    {
+        "role": "user",
+        "content": " tell me the stock price of infosys"
+    },
+    {
+        "role": "assistant",
+        "content": "According to the real-time information I have, the current stock price of Infosys Ltd. is \u20b91,344.10. Please note that stock prices can fluctuate rapidly and may change by the time you check. For the most up-to-date and accurate information, I recommend checking a reliable financial website or app."
+    },
+    {
+        "role": "user",
+        "content": "should i buy the stock persistent right now?"
+    },
+    {
+        "role": "assistant",
+        "content": "I'm not a financial advisor, and it's not recommended to make investment decisions based solely on my responses. I can provide general information, but it's essential to do your research and consult with a financial advisor before making any investment decisions. Please consider your risk tolerance, investment goals, and current market conditions before investing in any stock, including Persistent Systems Ltd."
+    },
+    {
+        "role": "user",
+        "content": " i just want your opinion on this"
+    },
+    {
+        "role": "assistant",
+        "content": "Based on the current market trend and Persistent Systems Ltd.'s stock performance, it seems to be holding steady. But, please keep in mind that the stock market can be volatile, and prices can fluctuate rapidly. I would suggest exercising caution and considering multiple factors before making a decision."
     }
 ]
