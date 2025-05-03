@@ -1,0 +1,4 @@
+selenium>=4.15.2
+webdriver-manager>=3.8.6
+mtranslate>=1.8.2
+python-dotenv>=1.0.0 
