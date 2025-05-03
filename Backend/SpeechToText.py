@@ -111,16 +111,15 @@ import time
 def SpeechRecognition():
     driver.get("file:///" + Link)
     time.sleep(2)  # wait for page to load
-
     driver.find_element(By.ID, "start").click()
-
     print("Listening... Speak something!")
 
+    last_text = ""
     while True:
         try:
             Text = driver.find_element(By.ID, "output").text
-
-            if Text.strip():  # if some text is recognized
+            if Text.strip() and Text != last_text:
+                last_text = Text
                 driver.find_element(By.ID, "end").click()
 
                 if InputLanguage.lower() == "en" or "en" in InputLanguage.lower():
@@ -128,8 +127,9 @@ def SpeechRecognition():
                 else:
                     SetAssistantStatus("Translating...")
                     return QueryModifier(UniversalTranslator(Text))
-        except Exception as e:
+        except Exception:
             pass
+
 
 
 # Main execution block.
