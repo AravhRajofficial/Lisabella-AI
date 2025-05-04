@@ -1,51 +1,53 @@
+import os
+import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
-import os
 import mtranslate as mt
 from dotenv import dotenv_values
-import time
 
-# Load environment variables
 env_vars = dotenv_values(".env")
-InputLanguage = env_vars.get("InputLanguage", "en-US")
+InputLanguage = env_vars.get("InputLanguage")
 
-# Get current working directory
-current_dir = os.getcwd()
-html_file_path = os.path.join(current_dir, "Data", "Voice.html")
-html_file_url = "file:///" + html_file_path.replace("\\", "/")
+# Write HTML file
+html_code_path = os.path.join("Data", "Voice.html")
+if not os.path.exists("Data"):
+    os.makedirs("Data")
 
-# Chrome options setup
+with open(html_code_path, "w", encoding="utf-8") as f:
+    with open("voice.html", "r", encoding="utf-8") as src:
+        html_content = src.read().replace("recognition.lang = 'en-US';", f"recognition.lang = '{InputLanguage}';")
+        f.write(html_content)
+
+# Setup Chrome options
 chrome_options = Options()
-chrome_options.add_argument("--use-fake-ui-for-media-stream")
-chrome_options.add_argument("--use-fake-device-for-media-stream")
 chrome_options.add_argument("--disable-infobars")
 chrome_options.add_argument("--disable-notifications")
-# DO NOT use headless mode!
+chrome_options.add_argument("--start-maximized")
+# NOTE: Do NOT add headless or fake device options if using real mic
 
-# Initialize WebDriver
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+service = Service(ChromeDriverManager().install())
+driver = webdriver.Chrome(service=service, options=chrome_options)
 
-# Modify query format
-def QueryModifier(Query):
-    new_query = Query.lower().strip()
-    if new_query and new_query[-1] not in [".", "?", "!"]:
-        new_query += "."
-    return new_query.capitalize()
+html_file_url = f"file:///{os.path.abspath(html_code_path)}"
 
-# Translate to English
-def UniversalTranslator(Text):
-    english_translation = mt.translate(Text, "en", "auto")
-    return english_translation.capitalize()
+def QueryModifier(query):
+    new_query = query.strip().lower()
+    question_words = ["how", "what", "who", "when", "where", "why", "which", "whose", "whom", "can you", "will you"]
+    if any(new_query.startswith(q) for q in question_words):
+        return new_query.capitalize() + "?"
+    return new_query.capitalize() + "."
 
-# Perform speech recognition
+def UniversalTranslator(text):
+    return mt.translate(text, "en", "auto").capitalize()
+
 def SpeechRecognition():
     driver.get(html_file_url)
     time.sleep(2)
     driver.find_element(By.ID, "start").click()
-    print("Listening... Speak. Click the Stop button in the browser to finish.\n")
+    print("🎙️ Listening... (Click 'Stop Recognition' in the browser to end)\n")
 
     last_text = ""
     stable_count = 0
@@ -57,16 +59,14 @@ def SpeechRecognition():
             if Text != last_text:
                 last_text = Text
                 stable_count = 0
-                print("\rYou said: " + Text, end="")
+                print("\rYou said: " + Text, end="", flush=True)
             else:
                 stable_count += 1
 
-            # If the text has not changed for 5 loops (~5 seconds), assume stop clicked
             if stable_count >= 5:
                 break
 
             time.sleep(1)
-
         except Exception:
             pass
 
@@ -77,9 +77,7 @@ def SpeechRecognition():
     else:
         return QueryModifier(UniversalTranslator(last_text))
 
-
-# Run the program
 if __name__ == "__main__":
     while True:
         text = SpeechRecognition()
-        print("You said:", text)
+        print("\nFinal recognized:", text)

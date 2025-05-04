@@ -7,6 +7,7 @@
     <button id="start" onclick="startRecognition()">Start Recognition</button>
     <button id="end" onclick="stopRecognition()">Stop Recognition</button>
     <p id="output"></p>
+
     <script>
         const output = document.getElementById("output");
         let recognition;
@@ -29,7 +30,7 @@
             };
 
             recognition.onend = function() {
-                if (isRunning) recognition.start(); // auto-restart if not manually stopped
+                if (isRunning) recognition.start();
             };
 
             recognition.start();
