@@ -17,7 +17,7 @@ if not os.path.exists("Data"):
     os.makedirs("Data")
 
 with open(html_code_path, "w", encoding="utf-8") as f:
-    with open("voice.html", "r", encoding="utf-8") as src:
+    with open("Voice.html", "r", encoding="utf-8") as src:
         html_content = src.read().replace("recognition.lang = 'en-US';", f"recognition.lang = '{InputLanguage}';")
         f.write(html_content)
 
