@@ -2,23 +2,21 @@ import os
 import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
-import mtranslate as mt
 from dotenv import dotenv_values
+import mtranslate as mt
 
-# Load input language from .env
+# Load language setting from .env
 env_vars = dotenv_values(".env")
 InputLanguage = env_vars.get("InputLanguage", "en-US")
 
-# Write voice.html content to a file dynamically
+# Generate HTML content
 html_content = f"""
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <title>Speech Recognition</title>
-</head>
+<head><title>Speech Recognition</title></head>
 <body>
     <button id="start" onclick="startRecognition()">Start Recognition</button>
     <button id="end" onclick="stopRecognition()">Stop Recognition</button>
@@ -40,9 +38,9 @@ html_content = f"""
             recognition.onresult = function(event) {{
                 let transcript = '';
                 for (let i = event.resultIndex; i < event.results.length; ++i) {{
-                    transcript += event.results[i][0].transcript;
+                    transcript += event.results[i][0].transcript + ' ';
                 }}
-                output.textContent += transcript + ' ';
+                output.textContent += transcript;
             }};
 
             recognition.onend = function() {{
@@ -63,30 +61,30 @@ html_content = f"""
 </html>
 """
 
-# Write HTML to file
+# Write HTML
 data_dir = os.path.join(os.getcwd(), "Data")
 os.makedirs(data_dir, exist_ok=True)
 html_path = os.path.join(data_dir, "Voice.html")
-
 with open(html_path, "w", encoding="utf-8") as f:
     f.write(html_content)
 
-# Setup Chrome
+# Chrome options
 chrome_options = Options()
+chrome_options.add_argument("user-data-dir=C:/MyChromeProfile")  # Use pre-authorized profile
 chrome_options.add_argument("--disable-infobars")
-chrome_options.add_argument("--disable-notifications")
 chrome_options.add_argument("--start-maximized")
-# Do NOT use headless or fake media options if using real mic
+# ⚠️ Do NOT use --headless or fake media stream
 
+# Setup ChromeDriver
 service = Service(ChromeDriverManager().install())
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
-def QueryModifier(query):
-    new_query = query.strip().lower()
-    question_words = ["how", "what", "who", "when", "where", "why", "which", "whose", "whom", "can you", "will you"]
-    if any(new_query.startswith(q) for q in question_words):
-        return new_query.capitalize() + "?"
-    return new_query.capitalize() + "."
+def QueryModifier(text):
+    if not text: return ""
+    text = text.strip().lower()
+    if not text.endswith("."):
+        text += "."
+    return text.capitalize()
 
 def UniversalTranslator(text):
     return mt.translate(text, "en", "auto").capitalize()
@@ -95,38 +93,18 @@ def SpeechRecognition():
     driver.get(f"file:///{html_path.replace(os.sep, '/')}")
     time.sleep(2)
     driver.find_element(By.ID, "start").click()
-
-    print("🎙️ Listening... Speak continuously (Click 'Stop Recognition' in browser when done)\n")
+    print("🎙️ Listening...")
 
     last_text = ""
-    stable_count = 0
-
     while True:
         try:
-            Text = driver.find_element(By.ID, "output").text.strip()
-
-            if Text != last_text:
-                last_text = Text
-                stable_count = 0
-                print("\rYou said: " + Text, end="", flush=True)
-            else:
-                stable_count += 1
-
-            if stable_count >= 5:
-                break
-
+            text = driver.find_element(By.ID, "output").text.strip()
+            if text and text != last_text:
+                print("🗣️ Heard:", text)
+                last_text = text
             time.sleep(1)
-        except Exception:
+        except:
             pass
 
-    driver.find_element(By.ID, "end").click()
-
-    if "en" in InputLanguage.lower():
-        return QueryModifier(last_text)
-    else:
-        return QueryModifier(UniversalTranslator(last_text))
-
 if __name__ == "__main__":
-    while True:
-        result = SpeechRecognition()
-        print("\nFinal recognized:", result)
+    SpeechRecognition()
