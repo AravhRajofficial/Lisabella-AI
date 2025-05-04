@@ -43,8 +43,18 @@ HTMLCode = '''<!DOCTYPE html>
                 recognition.interimResults = true;
 
                 recognition.onresult = function(event){
-                    const transcript = event.results[event.results.length - 1][0].transcript;
-                    output.textContent = transcript;
+                    let finalTranscript = '';
+                    let interimTranscript = '';
+                    
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                        } else {
+                            interimTranscript += event.results[i][0].transcript;
+                        }
+                    }
+                    
+                    output.textContent = finalTranscript + interimTranscript;
                 };
 
                 recognition.onerror = function(event){
@@ -53,6 +63,7 @@ HTMLCode = '''<!DOCTYPE html>
 
                 recognition.onend = function(){
                     console.log('Speech recognition ended');
+                    recognition.start();  // Automatically restart recognition
                 };
                 
                 recognition.start();
@@ -160,16 +171,11 @@ def SpeechRecognition():
         logger.info("Listening... Speak something!")
 
         last_text = ""
-        max_attempts = 10
-        attempts = 0
-
-        while attempts < max_attempts:
+        while True:
             try:
                 Text = driver.find_element(By.ID, "output").text
                 if Text.strip() and Text != last_text:
                     last_text = Text
-                    driver.find_element(By.ID, "end").click()
-
                     if InputLanguage.lower() == "en" or "en" in InputLanguage.lower():
                         return QueryModifier(Text)
                     else:
@@ -177,14 +183,11 @@ def SpeechRecognition():
                         return QueryModifier(UniversalTranslator(Text))
                 
                 time.sleep(0.5)
-                attempts += 1
             except Exception as e:
                 logger.error(f"Error during speech recognition: {e}")
-                attempts += 1
                 time.sleep(0.5)
+                continue
 
-        logger.warning("No speech detected after maximum attempts")
-        return ""
     except Exception as e:
         logger.error(f"Error in SpeechRecognition: {e}")
         return ""
