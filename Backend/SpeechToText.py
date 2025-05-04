@@ -34,6 +34,8 @@ HTMLCode = '''<!DOCTYPE html>
     <script>
         const output = document.getElementById("output");
         let recognition;
+        let finalTranscript = '';
+        let interimTranscript = '';
 
         function startRecognition() {
             try {
@@ -43,12 +45,11 @@ HTMLCode = '''<!DOCTYPE html>
                 recognition.interimResults = true;
 
                 recognition.onresult = function(event){
-                    let finalTranscript = '';
-                    let interimTranscript = '';
+                    interimTranscript = '';
                     
                     for (let i = event.resultIndex; i < event.results.length; ++i) {
                         if (event.results[i].isFinal) {
-                            finalTranscript += event.results[i][0].transcript;
+                            finalTranscript += event.results[i][0].transcript + ' ';
                         } else {
                             interimTranscript += event.results[i][0].transcript;
                         }
@@ -76,6 +77,8 @@ HTMLCode = '''<!DOCTYPE html>
             if (recognition) {
                 recognition.stop();
                 output.innerHTML = "";
+                finalTranscript = '';
+                interimTranscript = '';
             }
         }
     </script>
@@ -176,16 +179,17 @@ def SpeechRecognition():
                 Text = driver.find_element(By.ID, "output").text
                 if Text.strip() and Text != last_text:
                     last_text = Text
+                    print(Text)  # Print the text as it's being recognized
                     if InputLanguage.lower() == "en" or "en" in InputLanguage.lower():
                         return QueryModifier(Text)
                     else:
                         SetAssistantStatus("Translating...")
                         return QueryModifier(UniversalTranslator(Text))
                 
-                time.sleep(0.5)
+                time.sleep(0.1)  # Reduced sleep time for more responsive updates
             except Exception as e:
                 logger.error(f"Error during speech recognition: {e}")
-                time.sleep(0.5)
+                time.sleep(0.1)
                 continue
 
     except Exception as e:
