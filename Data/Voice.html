@@ -7,24 +7,29 @@
     <button id="start" onclick="startRecognition()">Start Recognition</button>
     <button id="end" onclick="stopRecognition()">Stop Recognition</button>
     <p id="output"></p>
-
     <script>
         const output = document.getElementById("output");
         let recognition;
+        let isRunning = false;
 
         function startRecognition() {
             window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRecognition();
             recognition.lang = 'en-US';
             recognition.continuous = true;
-            recognition.interimResults = true;
+            recognition.interimResults = false;
+            isRunning = true;
 
             recognition.onresult = function(event) {
                 let transcript = '';
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
                     transcript += event.results[i][0].transcript;
                 }
-                output.textContent = transcript;
+                output.textContent += transcript + ' ';
+            };
+
+            recognition.onend = function() {
+                if (isRunning) recognition.start(); // auto-restart if not manually stopped
             };
 
             recognition.start();
@@ -32,6 +37,7 @@
 
         function stopRecognition() {
             if (recognition) {
+                isRunning = false;
                 recognition.stop();
             }
         }

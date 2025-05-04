@@ -43,25 +43,40 @@ def UniversalTranslator(Text):
 # Perform speech recognition
 def SpeechRecognition():
     driver.get(html_file_url)
-    time.sleep(2)  # Allow the HTML to load
-
+    time.sleep(2)
     driver.find_element(By.ID, "start").click()
-    print("Listening... Speak something!")
+    print("Listening... Speak. Click the Stop button in the browser to finish.\n")
 
     last_text = ""
+    stable_count = 0
+
     while True:
         try:
-            Text = driver.find_element(By.ID, "output").text
-            if Text.strip() and Text != last_text:
-                last_text = Text
-                driver.find_element(By.ID, "end").click()
+            Text = driver.find_element(By.ID, "output").text.strip()
 
-                if "en" in InputLanguage.lower():
-                    return QueryModifier(Text)
-                else:
-                    return QueryModifier(UniversalTranslator(Text))
+            if Text != last_text:
+                last_text = Text
+                stable_count = 0
+                print("\rYou said: " + Text, end="")
+            else:
+                stable_count += 1
+
+            # If the text has not changed for 5 loops (~5 seconds), assume stop clicked
+            if stable_count >= 5:
+                break
+
+            time.sleep(1)
+
         except Exception:
             pass
+
+    driver.find_element(By.ID, "end").click()
+
+    if "en" in InputLanguage.lower():
+        return QueryModifier(last_text)
+    else:
+        return QueryModifier(UniversalTranslator(last_text))
+
 
 # Run the program
 if __name__ == "__main__":
