@@ -1,5 +1,5 @@
 #import required Libraries
-from AppOpener import close, open as open  # import function to open and close app.
+from AppOpener import close, open as appopen  # import function to open and close app.
 from webbrowser import open as webopen  #import the brwoser functionality.
 from pywhatkit import search, playonyt  # Import function for google search and Youtube playback.
 from dotenv import dotenv_values  # Import dotenv to manage environmental variables.
@@ -71,7 +71,7 @@ def Content(Topic):
             if chunk.choices[0].delta.content:  # Check for the content in the current chunk.
                 Answer += chunk.choices[0].delta.content  # Append the content to the answer.
             
-        Answer = Answer.replace("<s>", "") # Remove unwanted tokens from the response.
+        Answer = Answer.replace("</s>", "") # Remove unwanted tokens from the response.
         messages.append({"role": "assistant", "content": Answer}) # Add the AI's response to message.
         return Answer
     
@@ -87,4 +87,150 @@ def Content(Topic):
     return True # Indicate sucess.
 
 # Function to search for a topic on Youtube.
-# def
+def YoutubeSearch(Topic):
+    # construct the Youtube search URL. 
+    Url4Search= f"hhtps://www.youtube.com/results?search_query={Topic}" 
+    # Open the search URl in web browser.
+    webbrowser.open(Url4Search) 
+    return True
+
+# Fuction to play a video in Youtube.
+def PlayYoutube(query):
+    # use pywhatkit's playonyt function to play the video.
+    playonyt(query)
+    return True
+
+# Function to open an application or a relevant webpage.
+def OpenApp(app, sess=requests.session):
+    try:
+        OpenApp(app, match_closest=True, output=True, throw_error=True) # Attempt to oprn the app.
+        return True
+    
+    except:
+        # Nested function to extract links from HTMl content.
+        def extract_link(html):
+            if html is None:
+                return[]
+            soup = BeautifulSoup(html, 'html.parser')  # Parse the HTML content.
+            links = soup.find_all('a', {'jsname':"UWckNb"})  # Find relevant links.
+            return [link.get('href')for link in links] # Return the links.
+
+        # Define function to perform a Google search and retrieve HTML.
+        def search_google(query):
+            url = f"https://www.google.com/search?q={query}" # Construct the Google search url.
+            headers = {"User-Agent": useragent} # Use the predefined user-Agent.
+            response = sess.get(url, headers=headers)  # Perform the GET request.
+
+            if response.status_code == 200:
+                return response.text # Return the HTML content.
+            else:
+                print("Failed to retrive search results.")
+            return None
+        
+        html = search_google(app)  # Perform the google search.
+        if html: 
+            link = extract_link(html)[0] # Extract the first link from the search results.
+            webopen(link)  # open the link in a web browser.
+
+        return True
+    
+# Function to close an application.
+def CloseApp(app):
+    if "chrome" in app:
+        pass 
+    else:
+        try:
+            close(app, match_closest=True, output=True, throw_error=True) # Attempt to close the app.
+            return True
+        except:
+            return False
+        
+# Function to execute system-level commands.
+def System(command):
+    # Nested function to mute the system volume.
+    def mute():
+        keyboard.press_and_release("volume mute") # Stimulate the mute key press.
+
+    # Nested function to unmute the system volume.
+    def unmute():
+        keyboard.press_and_release("volume unmute ") # Stimulate the unmute key press.    
+    
+    # Nested function to increase the system volume.
+    def volume_up():
+        keyboard.press_and_release("volume up") # Stimulate the volume up key press.
+
+    # Nested function to decrease the system volume.
+    def volume_down():
+        keyboard.press_and_release("volume down") # Stimulate the volume down key press.
+
+    # Execute the command.
+    if command == "mute":
+        mute()
+    elif command == "unmute":
+        unmute()
+    elif command == "volume up":
+        volume_up()
+    elif command == "volume down":
+        volume_down()
+    return True
+
+
+# Asynchronous function to translate and execute user commands.
+async def TrnslateAndExecute(commands: list{str}):
+    funcs = [] # List to store asynchronous tasks.
+    for command in commands:
+        if command.startwith("open "):
+            if "open it" in command:
+                pass
+            if "open file" == command:
+                pass
+            else:
+                fun = asyncio.to_thread(OpenApp, command.removeprefix("open ")) # Schedule app opening.
+                funcs.append(fun)
+
+        elif command.startswith("general "):
+            pass  # Placeholder for general commands.
+        elif command.startswith("realtime "):
+             pass
+        
+        elif command.startswith("close "):
+            fun = asyncio.to_thread(CloseApp, command.removeprefix("close "))
+            funcs.append(fun)
+
+        elif command.startswith("play "):
+            fun = asyncio.to_thread(PlayYoutube, command.removeprefix("play "))
+            funcs.append(fun)
+
+        elif command.startswith("content "):
+            fun = asyncio.to_thread(Content, command.removeprefix("content "))
+            funcs.append(fun)
+
+        elif command.startswith("google search "):
+            fun = asyncio.to_thread(GoogleSearch, command.removeprefix("google search "))
+            funcs.append(fun)
+
+        elif command.startswith("youtbe search "):
+            fun = asyncio.to_thread(YoutubeSearch, command.removeprefix("youtube search "))
+            funcs.append(fun)
+
+        elif command.startswith("systeem "):
+            fun = asyncio.to_thread(System, command.removeprefix("system "))
+            funcs.append(fun)
+
+        else:
+            print(f"No Function Found. For{command}")
+
+    results = await asyncio.gather(*funcs)
+
+    for result in results:
+        if isinstance(result, str):
+            yield result
+        else:
+            yield result
+
+# Asynchronous funnction to automate command execution.
+async def Automation(commands: list(str)):
+    async for result in TrnslateAndExecute(commands):
+        pass
+
+    return True
