@@ -234,3 +234,5 @@ async def Automation(commands: list(str)):
         pass
 
     return True
+
+if __name__== "__main__":...
