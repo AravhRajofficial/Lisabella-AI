@@ -178,7 +178,7 @@ def System(command):
 
 
 # Asynchronous function to translate and execute user commands.
-async def TrnslateAndExecute(commands: list{str}):
+async def TranslateAndExecute(commands: list[str]):
     funcs = [] # List to store asynchronous tasks.
     for command in commands:
         if command.startswith("open "):
@@ -227,9 +227,9 @@ async def TrnslateAndExecute(commands: list{str}):
     for result in results:
         yield result
 
-# Asynchronous funnction to automate command execution.
-async def Automation(commands: list(str)):
-    async for result in TrnslateAndExecute(commands):
+# Asynchronous function to automate command execution.
+async def Automation(commands: list[str]):
+    async for result in TranslateAndExecute(commands):
         pass
 
     return True
