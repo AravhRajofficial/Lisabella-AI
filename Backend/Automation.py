@@ -1,6 +1,7 @@
 #import required Libraries
 from AppOpener import close, open as appopen  # import function to open and close app.
 from webbrowser import open as webopen  #import the brwoser functionality.
+from typing import List, AsyncGenerator, Any
 from pywhatkit import search, playonyt  # Import function for google search and Youtube playback.
 from dotenv import dotenv_values  # Import dotenv to manage environmental variables.
 from bs4 import BeautifulSoup  # Importing BeautifulSoup for prasing HTML content.
@@ -15,6 +16,7 @@ import os # Import os for operating system functionalities.
 
 # Load environmental variable from .env file.
 env_vars = dotenv_values(".env")
+Username = env_vars.get("Username")
 GroqAPIKey = env_vars.get("GroqAPIKey")  # Retrieve the Groq API Key
 
 # Define CSS class for parsing specific elements in HTML content.
@@ -36,7 +38,7 @@ professional_responses = [
 messages = []
 
 # System message to provide context to the chatbot.
-SystemChatBot = [{"role": "system", "content": f"Hello, I am{os.environ['Username']}, You're a content writer. You have to write content like letter"}]
+SystemChatBot = [{"role": "system", "content": f"Hello, I am {Username}, You're a content writer. You have to write content like letter"}]
 
 # Function to perform a Google Search
 def GoogleSearch(Topic):
@@ -89,7 +91,7 @@ def Content(Topic):
 # Function to search for a topic on Youtube.
 def YoutubeSearch(Topic):
     # construct the Youtube search URL. 
-    Url4Search= f"hhtps://www.youtube.com/results?search_query={Topic}" 
+    Url4Search= f"https://www.youtube.com/results?search_query={Topic}"
     # Open the search URl in web browser.
     webbrowser.open(Url4Search) 
     return True
@@ -103,7 +105,7 @@ def PlayYoutube(query):
 # Function to open an application or a relevant webpage.
 def OpenApp(app, sess=requests.session):
     try:
-        OpenApp(app, match_closest=True, output=True, throw_error=True) # Attempt to oprn the app.
+        appopen(app, match_closest=True, output=True, throw_error=True) # Attempt to oprn the app.
         return True
     
     except:
@@ -179,13 +181,13 @@ def System(command):
 async def TrnslateAndExecute(commands: list{str}):
     funcs = [] # List to store asynchronous tasks.
     for command in commands:
-        if command.startwith("open "):
+        if command.startswith("open "):
             if "open it" in command:
                 pass
             if "open file" == command:
                 pass
             else:
-                fun = asyncio.to_thread(OpenApp, command.removeprefix("open ")) # Schedule app opening.
+                fun = asyncio.to_thread(OpenApp, command.removeprefix("open ").strip()) # Schedule app opening.
                 funcs.append(fun)
 
         elif command.startswith("general "):
@@ -194,39 +196,36 @@ async def TrnslateAndExecute(commands: list{str}):
              pass
         
         elif command.startswith("close "):
-            fun = asyncio.to_thread(CloseApp, command.removeprefix("close "))
+            fun = asyncio.to_thread(CloseApp, command.removeprefix("close ").strip())
             funcs.append(fun)
 
         elif command.startswith("play "):
-            fun = asyncio.to_thread(PlayYoutube, command.removeprefix("play "))
+            fun = asyncio.to_thread(PlayYoutube, command.removeprefix("play ").strip())
             funcs.append(fun)
 
         elif command.startswith("content "):
-            fun = asyncio.to_thread(Content, command.removeprefix("content "))
+            fun = asyncio.to_thread(Content, command.removeprefix("content ").strip())
             funcs.append(fun)
 
         elif command.startswith("google search "):
-            fun = asyncio.to_thread(GoogleSearch, command.removeprefix("google search "))
+            fun = asyncio.to_thread(GoogleSearch, command.removeprefix("google search ").strip())
             funcs.append(fun)
 
-        elif command.startswith("youtbe search "):
-            fun = asyncio.to_thread(YoutubeSearch, command.removeprefix("youtube search "))
+        elif command.startswith("youtube search "):
+            fun = asyncio.to_thread(YoutubeSearch, command.removeprefix("youtube search ").strip())
             funcs.append(fun)
 
-        elif command.startswith("systeem "):
-            fun = asyncio.to_thread(System, command.removeprefix("system "))
+        elif command.startswith("system "):
+            fun = asyncio.to_thread(System, command.removeprefix("system ").strip())
             funcs.append(fun)
 
         else:
-            print(f"No Function Found. For{command}")
+            print(f"No Function Found For: {command}")
 
     results = await asyncio.gather(*funcs)
 
     for result in results:
-        if isinstance(result, str):
-            yield result
-        else:
-            yield result
+        yield result
 
 # Asynchronous funnction to automate command execution.
 async def Automation(commands: list(str)):
@@ -235,4 +234,5 @@ async def Automation(commands: list(str)):
 
     return True
 
-if __name__== "__main__":...
+if __name__== "__main__":
+    pass
