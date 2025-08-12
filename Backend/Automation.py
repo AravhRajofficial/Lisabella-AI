@@ -86,7 +86,7 @@ def Content(Topic):
         file.close()
 
     OpenNotepad(rf"Data\{Topic.lower().replace(' ','')}.txt")  # Open the file in Notepad.
-    return True # Indicate sucess.
+    return True # Indicate success.
 
 # Function to search for a topic on Youtube.
 def YoutubeSearch(Topic):
