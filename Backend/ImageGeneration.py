@@ -82,7 +82,7 @@ while True:
                 break # exit the loop after processing the request
         
         else:
-            sleep(1)
+            sleep(2)
 
     except:
         pass
