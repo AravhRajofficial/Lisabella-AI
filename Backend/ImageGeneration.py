@@ -41,7 +41,7 @@ async def generate_images(prompt: str):
     tasks = []
 
     # create 4 image generation tasks
-    for _ in range(4):
+    for i in range(4):
         payload = {
             "inputs": f"{prompt}, quality=4k, sharpness=maximum, Ultra High details, high resolution, seed = {randint(0,100000)}"
         }
