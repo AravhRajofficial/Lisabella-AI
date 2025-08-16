@@ -41,7 +41,7 @@ def UniversalTranslator(Text):
 
 # Recognize speech from browser
 def SpeechRecognition():
-    driver.get(Data/Voice.html)
+    driver.get(html_file_url)
     time.sleep(2)
     driver.find_element(By.ID, "start").click()
     print("Listening... Speak something!")
