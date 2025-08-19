@@ -22,37 +22,36 @@ async def TextToAudioFile(text) -> None:
 
 # Function to image Text-to-Speech (TTS) functionality
 def TTS(Text, func=lambda r=None: True):
-    while True:
+    try:
+        # Initialize pygame mixer for audio playback
+        pygame.mixer.init()
+
+        # Convert text to an audio file asynchronously
+        asyncio.run(TextToAudioFile(Text))
+
+        # Load the generated speech file into pygame mixer
+        pygame.mixer.music.load(r"Data\speech.mp3")
+        pygame.mixer.music.play() # Play the audio
+
+        # Loop until the audio is done playing or the function stops 
+        while pygame.mixer.music.get_busy():
+            if not func():  # check if the external function returns False
+                pygame.mixer.music.stop()
+                break
+            pygame.time.Clock().tick(10)  # Limit the loop to 10 ticks per second
+    
+    except Exception as e:  # Handle any exceptions during the process
+        print(f"Error in TTS: {e}")
+    
+    finally:
         try:
-            # Convert text to an audio file asynchronously
-            asyncio.run(TextToAudioFile)
+            # Call the provided function with False to signal the end of TTS
+            func(False)
+            pygame.mixer.music.stop() # Stop the audio playback
+            pygame.mixer.quit() # Quit the pygame mixer
 
-            # Initialize pygame mixer for audio playback
-            pygame.mixer.init()
-
-            # Load the generated speech file into pygame mixer
-            pygame.mixer.music.load(r"Data\speech.mp3")
-            pygame.mixer.music.play() # Play the audio
-
-            # Loop until the audio is done playing or the function stops 
-            while pygame.mixer.music.get_busy():
-                if func() == False:  # check if the external function retuurns False
-                    break
-                pygame.time.Clock().trick(10)  # Limit the loop to 10 tricks per second
-                return True # Return True if the audio played successfully
-            
-        except Exception as e:  # Handle any exceptions during the process
-            print(f"Error in TTS: {e}")
-        
-        finally:
-            try:
-                # Calll the provided function with False to signal the end of TTS
-                func(False)
-                pygame.mixer.music.stop() # Stop the audio playback
-                pygame.mixer.quit() # Quit the pygame mixer
-
-            except Exception as e: # Handle any exceptions during cleanup
-                print(f"Error in final block: {e}")
+        except Exception as e: # Handle any exceptions during cleanup
+            print(f"Error in final block: {e}")
 
 # Function to manage Text-to-Speech with additional response for long text.
 def TextToSpeech(Text, func=lambda r=None: True):
@@ -92,6 +91,4 @@ def TextToSpeech(Text, func=lambda r=None: True):
 
 # Main execution loop
 if __name__ == "__main__":
-    while True:
-        # Prompt user for input and pass it to TextToSpeech function
-        TextToSpeech(input("Enter the text: "))
+    TextToSpeech("Hello, this is a test of the text to speech system.")
