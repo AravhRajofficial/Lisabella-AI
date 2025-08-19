@@ -1,8 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
 import os
 import mtranslate as mt
 from dotenv import dotenv_values
@@ -20,12 +18,12 @@ html_file_url = "file:///" + html_file_path.replace("\\", "/")
 chrome_options = Options()
 chrome_options.add_argument("--use-fake-ui-for-media-stream")
 chrome_options.add_argument("--use-fake-device-for-media-stream")
-chrome_options.add_argument("--headless=new")  # Do NOT use headless!
+# chrome_options.add_argument("--headless=new")  # As the comment suggests, headless mode can cause issues with media streams.
 chrome_options.add_argument("--disable-infobars")
 chrome_options.add_argument("--disable-notifications")
 
 # Initialize driver
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+driver = webdriver.Chrome(options=chrome_options)
 
 # Simple query formatter
 def QueryModifier(Query):
@@ -49,17 +47,20 @@ def SpeechRecognition():
     last_text = ""
     while True:
         try:
-            Text = driver.find_element(By.ID, "output").text
-            if Text.strip() and Text != last_text:
-                last_text = Text
+            text_from_browser = driver.find_element(By.ID, "output").text
+            current_text = text_from_browser.strip()
+            if current_text and current_text != last_text:
+                last_text = current_text
                 driver.find_element(By.ID, "end").click()
 
                 if "en" in InputLanguage.lower():
-                    return QueryModifier(Text)
+                    return QueryModifier(current_text)
                 else:
-                    return QueryModifier(UniversalTranslator(Text))
-        except Exception:
-            pass
+                    return QueryModifier(UniversalTranslator(current_text))
+            time.sleep(0.2)  # Add a small delay to prevent high CPU usage
+        except Exception as e:
+            print(f"An error occurred during speech recognition: {e}")
+            return ""  # Exit the function with an empty string on error
 
 # Run recognition loop
 if __name__ == "__main__":
