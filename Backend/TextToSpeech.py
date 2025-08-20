@@ -3,11 +3,12 @@ import random  # Import random for generating random choices.
 import asyncio # Import asyncio for asynchronous operations.
 import edge_tts # Import edge_tts for text-to-speech functionality
 import os  # Import os for file path handling
+import time # Import time for adding delays
 from dotenv import dotenv_values # Import dotenv for reading environment variables from the .env file.
 
 # Load environment variables from a .env file.
 env_vars = dotenv_values(".env")
-AssistantVoice = env_vars.get("AssistantVoice") # Get the AssistantVoice from the env file.
+AssistantVoice = env_vars.get("AssistantVoice", "en-US-AriaNeural") # Get the AssistantVoice from the env file.
 
 # Asynchrnous function to convert text to an audio file
 async def TextToAudioFile(text) -> None:
@@ -17,28 +18,41 @@ async def TextToAudioFile(text) -> None:
         os.remove(file_path)   # If it exists, remove it to avoid overwriting errors
     
     # Create the communicate object to generate speech
-    communicate = edge_tts.Communication(text, AssistantVoice, pitch='+5Hz', rate='+13%')
+    communicate = edge_tts.Communicate(text, AssistantVoice, pitch='+5Hz', rate='+13%')
     await communicate.save(r'Data\speech.mp3') # Save the generated speech as an MP3 file.
 
 # Function to image Text-to-Speech (TTS) functionality
 def TTS(Text, func=lambda r=None: True):
     try:
+        print("TTS: Initializing mixer...")
         # Initialize pygame mixer for audio playback
         pygame.mixer.init()
 
+        print("TTS: Generating audio file...")
         # Convert text to an audio file asynchronously
         asyncio.run(TextToAudioFile(Text))
+        print("TTS: Audio file generated.")
 
         # Load the generated speech file into pygame mixer
-        pygame.mixer.music.load(r"Data\speech.mp3")
+        audio_file = r"Data\speech.mp3"
+        if not os.path.exists(audio_file):
+            print(f"TTS Error: Audio file not found at {audio_file}")
+            return
+
+        print(f"TTS: Loading audio file: {audio_file}")
+        pygame.mixer.music.load(audio_file)
+        print("TTS: Playing audio...")
         pygame.mixer.music.play() # Play the audio
+        time.sleep(0.1) # Give the mixer a moment to start
 
         # Loop until the audio is done playing or the function stops 
         while pygame.mixer.music.get_busy():
             if not func():  # check if the external function returns False
                 pygame.mixer.music.stop()
+                print("TTS: Playback stopped by external function.")
                 break
             pygame.time.Clock().tick(10)  # Limit the loop to 10 ticks per second
+        print("TTS: Playback finished.")
     
     except Exception as e:  # Handle any exceptions during the process
         print(f"Error in TTS: {e}")
@@ -46,9 +60,11 @@ def TTS(Text, func=lambda r=None: True):
     finally:
         try:
             # Call the provided function with False to signal the end of TTS
+            print("TTS: Cleaning up mixer...")
             func(False)
             pygame.mixer.music.stop() # Stop the audio playback
             pygame.mixer.quit() # Quit the pygame mixer
+            print("TTS: Mixer cleaned up.")
 
         except Exception as e: # Handle any exceptions during cleanup
             print(f"Error in final block: {e}")

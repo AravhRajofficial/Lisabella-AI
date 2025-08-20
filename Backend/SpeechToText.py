@@ -1,29 +1,10 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-import os
+import speech_recognition as sr
 import mtranslate as mt
 from dotenv import dotenv_values
-import time
 
 # Load environment variables
 env_vars = dotenv_values(".env")
-InputLanguage = env_vars.get("InputLanguage", "en-US")
-
-# HTML file path
-html_file_path = os.path.join(os.getcwd(), "Data", "Voice.html")
-html_file_url = "file:///" + html_file_path.replace("\\", "/")
-
-# Chrome options setup
-chrome_options = Options()
-chrome_options.add_argument("--use-fake-ui-for-media-stream")
-chrome_options.add_argument("--use-fake-device-for-media-stream")
-# chrome_options.add_argument("--headless=new")  # As the comment suggests, headless mode can cause issues with media streams.
-chrome_options.add_argument("--disable-infobars")
-chrome_options.add_argument("--disable-notifications")
-
-# Initialize driver
-driver = webdriver.Chrome(options=chrome_options)
+InputLanguage = env_vars.get("InputLanguage", "en-IN")
 
 # Simple query formatter
 def QueryModifier(Query):
@@ -34,36 +15,46 @@ def QueryModifier(Query):
 
 # Translate non-English input
 def UniversalTranslator(Text):
-    english_translation = mt.translate(Text, "en", "auto")
-    return english_translation.capitalize()
+    try:
+        english_translation = mt.translate(Text, "en", "auto")
+        return english_translation.capitalize()
+    except Exception as e:
+        print(f"Translation Error: {e}")
+        return ""
 
-# Recognize speech from browser
+# Recognize speech using the speech_recognition library
 def SpeechRecognition():
-    driver.get(html_file_url)
-    time.sleep(2)
-    driver.find_element(By.ID, "start").click()
-    print("Listening... Speak something!")
+    r = sr.Recognizer()
+    with sr.Microphone() as source:
+        print("Listening... Speak something!")
+        r.pause_threshold = 1
+        r.adjust_for_ambient_noise(source)
+        audio = r.listen(source)
 
-    last_text = ""
-    while True:
-        try:
-            text_from_browser = driver.find_element(By.ID, "output").text
-            current_text = text_from_browser.strip()
-            if current_text and current_text != last_text:
-                last_text = current_text
-                driver.find_element(By.ID, "end").click()
+    try:
+        print("Recognizing...")
+        query = r.recognize_google(audio, language=InputLanguage)
+        print(f"You said: {query}")
 
-                if "en" in InputLanguage.lower():
-                    return QueryModifier(current_text)
-                else:
-                    return QueryModifier(UniversalTranslator(current_text))
-            time.sleep(0.2)  # Add a small delay to prevent high CPU usage
-        except Exception as e:
-            print(f"An error occurred during speech recognition: {e}")
-            return ""  # Exit the function with an empty string on error
+        if "en" in InputLanguage.lower():
+            return QueryModifier(query)
+        else:
+            translated_query = UniversalTranslator(query)
+            return QueryModifier(translated_query)
+
+    except sr.UnknownValueError:
+        print("Sorry, I could not understand what you said.")
+        return ""
+    except sr.RequestError as e:
+        print(f"Could not request results from Google Speech Recognition service; {e}")
+        return ""
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return ""
 
 # Run recognition loop
 if __name__ == "__main__":
     while True:
         text = SpeechRecognition()
-        print("You said:", text)
+        if text:
+            print("Processed text:", text)

@@ -1,4 +1,8 @@
 selenium>=4.15.2
 webdriver-manager>=3.8.6
 mtranslate==1.8
-python-dotenv>=1.0.0 
+python-dotenv>=1.0.0
+SpeechRecognition==3.10.4
+PyAudio==0.2.14
+edge-tts>=6.1.8
+Pillow>=10.5.0
