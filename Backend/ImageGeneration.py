@@ -5,6 +5,7 @@ import requests
 from dotenv import get_key
 import os
 from time import sleep
+import platform
 
 # Function to open and display images based on a given prompt.
 def open_images(prompt):
@@ -18,10 +19,13 @@ def open_images(prompt):
         image_path = os.path.join(folder_path, jpg_file)
 
         try:
-            # Try to open and display the image
-            img = Image.open(image_path)
             print(f"Opening image: {image_path}")
-            img.show()
+            # Use os.startfile on Windows for a more reliable opening behavior
+            if platform.system() == "Windows":
+                os.startfile(image_path)
+            else:
+                img = Image.open(image_path)
+                img.show()
             sleep(1)  # pause for 1 second before showing the next image.
 
         except (IOError, FileNotFoundError):
@@ -79,6 +83,9 @@ async def generate_images(prompt: str):
     if not any(image_bytes_list):
         print("No images were generated. API request may have failed.")
         return False
+
+    # Ensure the 'Data' directory exists before saving files
+    os.makedirs("Data", exist_ok=True)
 
     # Then, save all the files
     success_count = 0
