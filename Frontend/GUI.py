@@ -113,7 +113,7 @@ class ChatSection(QWidget):
         self.timer.timeout.connect(self.SpeechRecoText)
         self.timer.start(5)
         self.chat_text_edit.viewport().installEventFilter(self)
-        self.setStyleSheet("""
+        self.setStyleSheet(""""
             QScrollBar:vertical{
                 border: none;
                 background: black;
@@ -209,7 +209,6 @@ class InitialScreen(QWidget):
         gif_label.setAlignment(Qt.AlignCenter)
         movie.start()
         gif_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.label = QLabel()
         self.icon_label = QLabel()
         pixmap = QPixmap(GraphicDirectoryPath('Mic_on.png'))
         new_pixmap = pixmap.scaled(60, 60)
@@ -324,24 +323,24 @@ class CustomTopBar(QWidget):
         self.draggable = True
         self.offset = None
 
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.fillReact(self.react(), Qt.white)
-        super().paintEvent(event)
+        def paintEvent(self, event):
+            painter = QPainter(self)
+            painter.fillReact(self.react(), Qt.white)
+            super().paintEvent(event)
 
-    def minimizeWindow(self):
-        self.parent().showMinimized()
+        def minimizeWindow(self):
+            self.parent().showMinimized()
 
-    def maximizeWindow(self):
-        if self.parent().isMaximized():
-            self.parent().showNormal()
-            self.maximize_button.setIcon(self.maximize_icon)
-        else:
-            self.parent().showMaximized()
-            self.maximize_button.setIcon(self.restore_icon)
+        def maximizeWindow(self):
+            if self.parent().isMaximized():
+                self.parent().showNormal()
+                self.maximize_button.setIcon(self.maximize_icon)
+            else:
+                self.parent().showMaximized()
+                self.maximize_button.setIcon(self.restore_icon)
 
-    def closeWindow(self):
-        self.parent().close()
+        def closeWindow(self):
+            self.parent().close()
 
         def mousePressEvent(self, event):
             if self.draggable:
@@ -381,7 +380,7 @@ class MainWindow(QMainWindow):
     def initUI(self):
         desktop = QApplication.desktop()
         screen_width = desktop.screenGeometry().width()
-        screen_height = desktop.screenGeometry().height()
+        # screen_height = desktop.screenGeometry().height() # screen_height is not used after this line
         stacked_widget = QStackedWidget(self)
         initial_screen = InitialScreen()
         message_screen = MessageScreen()
@@ -389,12 +388,11 @@ class MainWindow(QMainWindow):
         stacked_widget.addWidget(message_screen)
         self.setGeometry(0,0, screen_width, screen_height)
         self.setStyleSheet("background-color: black;")
-        top_bar = CustomTopBar(self, stacked_widget)
+        top_bar = CustomTopBar(self, stacked_width)
         self.setMenuWidget(top_bar)
         self.setCentralWidget(stacked_widget)
 
 def GraphicalUserInterface():
-    print("Starting GUI...")
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
