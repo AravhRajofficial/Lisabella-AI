@@ -14,7 +14,6 @@ Username = env_vars.get("username")
 Assistantname = env_vars.get("Assistantname")
 GroqAPIKey = env_vars.get("GroqAPIKey")
 
-print(f"GroqAPIKey: {GroqAPIKey}")
 if not GroqAPIKey:
     raise ValueError("Missing GroqAPIKey in .env file.")
 
