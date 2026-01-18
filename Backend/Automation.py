@@ -45,7 +45,7 @@ def GoogleSearch(Topic):
     search(Topic) # Use pywhatkit's search function to perform a google search.
     return True # Indicate success.
 
-# Function to generate content usinng AI and save it to a file.
+# Function to generate content using AI and save it to a file.
 def Content(Topic):
     # Nested function to open a file in Notepad.
     def OpenNotepad(File):

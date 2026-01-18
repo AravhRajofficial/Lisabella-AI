@@ -388,7 +388,7 @@ class MainWindow(QMainWindow):
         stacked_widget.addWidget(message_screen)
         self.setGeometry(0,0, screen_width, screen_height)
         self.setStyleSheet("background-color: black;")
-        top_bar = CustomTopBar(self, stacked_width)
+        top_bar = CustomTopBar(self, stacked_widget)
         self.setMenuWidget(top_bar)
         self.setCentralWidget(stacked_widget)
 

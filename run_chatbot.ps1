@@ -1,0 +1,1 @@
+c:\Users\ARVH\Desktop\Lisabella-AI\.venv\Scripts\python.exe c:\Users\ARVH\Desktop\Lisabella-AI\Backend\Chatbot.py
