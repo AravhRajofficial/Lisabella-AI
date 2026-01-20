@@ -1,6 +1,7 @@
 import time
 import os
 import sys
+import asyncio
 from pathlib import Path
 
 # Add the project root to the path
@@ -10,6 +11,27 @@ from Backend.SpeechToText import SpeechRecognition
 from Backend.Model import FirstLayerDMM
 from Backend.TextToSpeech import TextToSpeech
 from Backend.Automation import Automation
+
+PRIORITY = [
+    "exit",
+    "open",
+    "close",
+    "play",
+    "generate image",
+    "system",
+    "content",
+    "google search",
+    "youtube search",
+    "general"
+]
+
+def pick_primary_task(tasks):
+    for priority in PRIORITY:
+        for task in tasks:
+            if task.startswith(priority):
+                return task
+    return None
+
 
 MIC_FILE_PATH = os.path.join("Frontend", "Files", "Mic.data")
 
@@ -50,21 +72,28 @@ def main():
 
         # Route & Execute
         if tasks:
-            for task in tasks:
-                if task.startswith("general"):
-                    # Chat response handled elsewhere (text-only for now)
-                    print(f"General query: {task}")
-                
-                elif task.startswith(("open", "close", "play", "system", "content", "google search", "youtube search")):
-                    # Automation tasks
-                    print(f"Executing automation: {task}")
-                    Automation([task])
+            primary_task = pick_primary_task(tasks)
 
-                elif task.startswith("generate image"):
-                    prompt = task.replace("generate image", "").strip()
-                    print(f"Generating image for: {prompt}")
-                    with open(os.path.join("Frontend", "Files", "ImageGeneration.data"), "w") as f:
-                        f.write(f"{prompt},True")
+            if not primary_task:
+                print("No valid tasks found.")
+                return
+            
+            # ------GENERAL QUERY-----
+            if primary_task.startswith("general"):
+                print(f"General query: {primary_task}")
+
+            # -----IMAGE GENERATION-----
+            elif primary_task.startswith("generate image"):
+                prompt = primary_task.replace("generate image", "").strip()
+                print(f"Generating image for prompt: {prompt}")
+                with open(os.path.join("Frontend", "Files", "ImageGeneration.data"), "w") as f:
+                    f.write(f"{prompt}")
+            
+            # ----AUTOMATION TASKS-----
+            elif primary_task.startswith(("open", "close", "play", "system", "content", "google search", "youtube search")):
+                print(f"Executing primary automation : {primary_task}")
+                asyncio.run(Automation(tasks))
+
 
         # optional voice feedback
         TextToSpeech("Done.")   

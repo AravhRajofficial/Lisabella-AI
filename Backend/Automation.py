@@ -22,6 +22,14 @@ GroqAPIKey = env_vars.get("GroqAPIKey")  # Retrieve the Groq API Key
 # Define CSS class for parsing specific elements in HTML content.
 classes = ["zCubwf", "hgKElc", "LTKOO sY7ric", "Z0LcW", "gsrt vk_bk FzvWsb Ywphnf", "pclqee", "tw-Data-text tw-text-small tw-ta", "IZ6rdc", "05uR6d LTKOO", "vlzY6d", "webanswers-webanswers_table_webanswers-table", "dDoNo ikb4Bb gsrt", "sXLa0e", "LWkfke", "WQF4g", "qv3Wpe", "kno-rdesc", "SPZz6b"]
 
+WEB_APPS = {
+    "youtube": "https://www.youtube.com",
+    "google": "https://www.google.com",
+    "gmail": "https://mail.google.com",
+    "github": "https://github.com",
+}
+
+
 # Define a user-agent for making web requests.
 useragent = ""
 
@@ -104,6 +112,11 @@ def PlayYoutube(query):
 
 # Function to open an application or a relevant webpage.
 def OpenApp(app, sess=requests.session):
+    app_lower = app.lower().strip()  # Convert the app name to lowercase.
+    if app_lower in WEB_APPS:
+        webbrowser.open(WEB_APPS[app_lower])
+        return True
+
     try:
         appopen(app, match_closest=True, output=True, throw_error=True) # Attempt to oprn the app.
         return True
@@ -195,27 +208,30 @@ async def TranslateAndExecute(commands: list[str]):
         elif command.startswith("realtime "):
              pass
         
-        elif command.startswith("close "):
+        elif command=="close" or command.startswith("close "):
             fun = asyncio.to_thread(CloseApp, command.removeprefix("close ").strip())
             funcs.append(fun)
 
-        elif command.startswith("play "):
-            fun = asyncio.to_thread(PlayYoutube, command.removeprefix("play ").strip())
+        elif command=="play" or command.startswith("play "):
+            query = command.removeprefix("play").strip()
+            fun = asyncio.to_thread(PlayYoutube, query)
             funcs.append(fun)
 
-        elif command.startswith("content "):
+        elif command=="content" or command.startswith("content "):
             fun = asyncio.to_thread(Content, command.removeprefix("content ").strip())
             funcs.append(fun)
 
-        elif command.startswith("google search "):
-            fun = asyncio.to_thread(GoogleSearch, command.removeprefix("google search ").strip())
+        elif command=="google search" or command.startswith("google search "):
+            query = command.removeprefix("google search").strip()
+            fun = asyncio.to_thread(GoogleSearch, query)
             funcs.append(fun)
 
-        elif command.startswith("youtube search "):
-            fun = asyncio.to_thread(YoutubeSearch, command.removeprefix("youtube search ").strip())
+        elif command=="youtube search" or command.startswith("youtube search "):
+            query = command.removeprefix("youtube search").strip()
+            fun = asyncio.to_thread(YoutubeSearch, query)
             funcs.append(fun)
 
-        elif command.startswith("system "):
+        elif command=="reminder" or command.startswith("system "):
             fun = asyncio.to_thread(System, command.removeprefix("system ").strip())
             funcs.append(fun)
 
