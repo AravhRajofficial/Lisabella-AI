@@ -19,8 +19,8 @@ def AnswerModifier(Answer):
     return modified_answer
 
 def QueryModifier(Query):
-    new_query = Query.lower().strip
-    query_words = new_query().split()
+    new_query = Query.lower().strip()
+    query_words = new_query.split()
     questions_words = ["who", "what", "when", "where", "why", "how","which","whose","whom", "can you", "what's", "where's", "why's", "how's", "who's", "how's"]
 
     if any(word + " " in new_query for word in questions_words):
@@ -151,7 +151,7 @@ class ChatSection(QWidget):
 
     def loadMessages(self):
         global old_chat_message
-        with open(TempDirectoryPath('Response.data'), 'r', encoding='utf-8') as file:
+        with open(TempDirectoryPath('Responses.data'), 'r', encoding='utf-8') as file:
             messages = file.read()
             if messages is None:
                 pass
@@ -217,6 +217,8 @@ class InitialScreen(QWidget):
         self.icon_label.setAlignment(Qt.AlignCenter)
         self.toggled = True
         self.icon_label.mousePressEvent = self.toggle_icon
+        self.label = QLabel("")
+        self.label.setStyleSheet("color: white; font-size: 16px; margin-bottom: 10px;")
         content_layout.addWidget(gif_label, alignment=Qt.AlignCenter)
         content_layout.addWidget(self.label, alignment=Qt.AlignCenter)
         content_layout.addWidget(self.icon_label, alignment=Qt.AlignCenter)
@@ -323,53 +325,53 @@ class CustomTopBar(QWidget):
         self.draggable = True
         self.offset = None
 
-        def paintEvent(self, event):
-            painter = QPainter(self)
-            painter.fillReact(self.react(), Qt.white)
-            super().paintEvent(event)
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), Qt.white)
+        super().paintEvent(event)
 
-        def minimizeWindow(self):
-            self.parent().showMinimized()
+    def minimizeWindow(self):
+        self.parent().showMinimized()
 
-        def maximizeWindow(self):
-            if self.parent().isMaximized():
-                self.parent().showNormal()
-                self.maximize_button.setIcon(self.maximize_icon)
-            else:
-                self.parent().showMaximized()
-                self.maximize_button.setIcon(self.restore_icon)
+    def maximizeWindow(self):
+        if self.parent().isMaximized():
+            self.parent().showNormal()
+            self.maximize_button.setIcon(self.maximize_icon)
+        else:
+            self.parent().showMaximized()
+            self.maximize_button.setIcon(self.restore_icon)
 
-        def closeWindow(self):
-            self.parent().close()
+    def closeWindow(self):
+        self.parent().close()
 
-        def mousePressEvent(self, event):
-            if self.draggable:
-                self.offset = event.pos()
+    def mousePressEvent(self, event):
+        if self.draggable:
+            self.offset = event.pos()
 
-        def mouseMoveEvent(self, event):
-            if self.draggable and self.offset:
-                new_pos = event.globalPos() - self.offset
-                self.parent().move(new_pos)
+    def mouseMoveEvent(self, event):
+        if self.draggable and self.offset:
+            new_pos = event.globalPos() - self.offset
+            self.parent().move(new_pos)
 
-        def ShowMessageScreen(self):
-            if self.current_screen is not None:
-                self.current_screen.hide()
+    def ShowMessageScreen(self):
+        if self.current_screen is not None:
+            self.current_screen.hide()
 
-            message_screen = MessageScreen(self)
-            layout = self.parent().layout()
-            if layout is not None:
-                layout.addWidget(message_screen)
-            self.current_screen = message_screen
+        message_screen = MessageScreen(self)
+        layout = self.parent().layout()
+        if layout is not None:
+            layout.addWidget(message_screen)
+        self.current_screen = message_screen
 
-        def showInitialScreen(self):
-            if self.current_screen is not None:
-                self.current_screen.hide()
+    def showInitialScreen(self):
+        if self.current_screen is not None:
+            self.current_screen.hide()
 
-            initial_screen = InitialScreen(self)
-            layout = self.parent().layout()
-            if layout is not None:
-                layout.addWidget(initial_screen)
-            self.current_screen = initial_screen
+        initial_screen = InitialScreen(self)
+        layout = self.parent().layout()
+        if layout is not None:
+            layout.addWidget(initial_screen)
+        self.current_screen = initial_screen
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -380,7 +382,7 @@ class MainWindow(QMainWindow):
     def initUI(self):
         desktop = QApplication.desktop()
         screen_width = desktop.screenGeometry().width()
-        # screen_height = desktop.screenGeometry().height() # screen_height is not used after this line
+        screen_height = desktop.screenGeometry().height()
         stacked_widget = QStackedWidget(self)
         initial_screen = InitialScreen()
         message_screen = MessageScreen()
