@@ -1,3 +1,5 @@
 /.venv
 /.env
 Models/LLM/*.gguf
+__pycache__/
+*.pyc
