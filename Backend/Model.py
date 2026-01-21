@@ -17,6 +17,15 @@ funcs =[
 ]
 
 def FirstLayerDMM(prompt: str):
+    # Heuristic: If it looks like a question, treat it as general query immediately.
+    # This prevents the LLM from trying to "play" or "open" things for simple questions.
+    question_starters = ["what", "who", "how", "why", "where", "when", "tell me", "explain", "hey", "hi", "hello"]
+    lower_prompt = prompt.lower().strip()
+    
+    for starter in question_starters:
+        if lower_prompt.startswith(starter):
+            return [f"general {lower_prompt}"]
+
     system_prompt = """
     You are a decision-making model.
     Classify the user query into tasks with STRICT prefixes.
@@ -60,7 +69,35 @@ def FirstLayerDMM(prompt: str):
     # split & clean
     tasks = [t.strip() for t in text.split(",") if t.strip()]
 
-    return tasks
+    # Valid command prefixes
+    command_prefixes = [
+        "open ", "close ", "play ", "system ", 
+        "content ", "google search ", "youtube search ", 
+        "generate image ", "general ", "exit"
+    ]
+    
+    # Filter/Validate tasks
+    final_tasks = []
+    for task in tasks:
+        # Check if the LLM output is exactly one of the strict formats
+        is_valid = False
+        for prefix in command_prefixes:
+            if task.startswith(prefix):
+                final_tasks.append(task)
+                is_valid = True
+                break
+        if not is_valid:
+            # If prompt was "exit", model might just say "exit" (which is in prefixes but strict format)
+            if task == "exit":
+                final_tasks.append(task)
+
+    # Fallback Mechanism:
+    # If no valid COMMANDS were found (model outputted garbage or just keywords),
+    # assume it's a GENERAL conversation using the ORIGINAL prompt.
+    if not final_tasks:
+        final_tasks.append(f"general {prompt}")
+
+    return final_tasks
 
 
 #entry point for the script.

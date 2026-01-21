@@ -2,6 +2,7 @@ import time
 import os
 import sys
 import asyncio
+import socket
 from pathlib import Path
 
 # Add the project root to the path
@@ -11,6 +12,7 @@ from Backend.SpeechToText import SpeechRecognition
 from Backend.Model import FirstLayerDMM
 from Backend.TextToSpeech import TextToSpeech
 from Backend.Automation import Automation
+from Backend.RealtimeSearchEngine import RealtimeSearchEngine
 
 PRIORITY = [
     "exit",
@@ -46,26 +48,75 @@ def set_mic_status(value: str):
     with open(MIC_FILE_PATH, "w") as f:
         f.write(value)
 
+# ... existing imports ...
+
+RESPOND_FILE_PATH = os.path.join("Frontend", "Files", "Responses.data")
+STATUS_FILE_PATH = os.path.join("Frontend", "Files", "Status.data")
+TEXT_INPUT_PATH = os.path.join("Frontend", "Files", "TextInput.data")
+
+# Singleton Socket to prevent double execution
+SINGLE_INSTANCE_SOCKET = None
+
+def check_single_instance():
+    global SINGLE_INSTANCE_SOCKET
+    SINGLE_INSTANCE_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        # Try to bind to a specific port. If it fails, another instance is using it.
+        SINGLE_INSTANCE_SOCKET.bind(('127.0.0.1', 65432))
+        print("Singleton check passed. Instance locked.")
+    except OSError:
+        print("\n" + "!"*50)
+        print("ERROR: Another instance of Lisabella AI is already running!")
+        print("Please close the existing window before starting a new one.")
+        print("!"*50 + "\n")
+        sys.exit(1)
+
+def ShowTextToScreen(text):
+    with open(RESPOND_FILE_PATH, "w", encoding="utf-8") as f:
+        f.write(text)
+
+def SetAssistantStatus(status):
+    with open(STATUS_FILE_PATH, "w", encoding="utf-8") as f:
+        f.write(status)
 
 def main():
     """ Main function to run the Lisabella AI assistant."""
+    check_single_instance() # <--- VERIFY SINGLE INSTANCE
     print("Lisabella AI started. Listening for commands...")
     while True:
-        mic_status = get_mic_status()
+        # Check for Text Input first
+        query = None
+        if os.path.exists(TEXT_INPUT_PATH):
+            try:
+                with open(TEXT_INPUT_PATH, "r", encoding="utf-8") as f:
+                    query = f.read().strip()
+                os.remove(TEXT_INPUT_PATH)
+            except Exception as e:
+                print(f"Error reading text input: {e}")
         
-        # IDLE STATE
-        if mic_status != "True":
-            time.sleep(0.2)
-            continue
+        # If no text input, check Mic
+        if not query:
+            mic_status = get_mic_status()
+            
+            # IDLE STATE
+            if mic_status != "True":
+                time.sleep(0.2)
+                continue
+            
+            # listen once
+            print("Mic on, Listening...")
+            SetAssistantStatus("Listening...")
+            query = SpeechRecognition()
         
-        # listen once
-        print("Mic on, Listening...")
-        query = SpeechRecognition()
-
+        # If we have a query (from Text OR Voice)
         if not query:
             set_mic_status("False")
+            SetAssistantStatus("Idle")
             continue
+            
         print(f"Recognized command: {query}")
+        SetAssistantStatus(f"Processing: {query}")
+        ShowTextToScreen(f"User: {query}")
 
         # Decision making
         tasks = FirstLayerDMM(query)
@@ -76,11 +127,20 @@ def main():
 
             if not primary_task:
                 print("No valid tasks found.")
+                SetAssistantStatus("No Task Found")
                 return
             
             # ------GENERAL QUERY-----
             if primary_task.startswith("general"):
                 print(f"General query: {primary_task}")
+                # Use Realtime Search Engine
+                query_text = primary_task.replace("general", "").strip()
+                response_text = RealtimeSearchEngine(query_text)
+                
+                # Display and Speak
+                SetAssistantStatus("Replying...")
+                ShowTextToScreen(f"User: {query_text}\nLisabella: {response_text}")
+                TextToSpeech(response_text)
 
             # -----IMAGE GENERATION-----
             elif primary_task.startswith("generate image"):
@@ -88,15 +148,18 @@ def main():
                 print(f"Generating image for prompt: {prompt}")
                 with open(os.path.join("Frontend", "Files", "ImageGeneration.data"), "w") as f:
                     f.write(f"{prompt}")
+                ShowTextToScreen(f"User: {query}\nLisabella: Generating image for {prompt}...")
             
             # ----AUTOMATION TASKS-----
             elif primary_task.startswith(("open", "close", "play", "system", "content", "google search", "youtube search")):
                 print(f"Executing primary automation : {primary_task}")
                 asyncio.run(Automation(tasks))
+                ShowTextToScreen(f"User: {query}\nLisabella: Executed {primary_task}")
 
 
         # optional voice feedback
-        TextToSpeech("Done.")   
+        # TextToSpeech("Done.")   
+        SetAssistantStatus("Idle")
 
         # Reset Mic -> back to idle
         set_mic_status("False")
