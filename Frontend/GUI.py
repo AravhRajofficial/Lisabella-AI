@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTextEdit, QStackedWidget, QWidget, QLineEdit, QGridLayout, QVBoxLayout, QHBoxLayout,QPushButton, QFrame, QLabel, QSizePolicy, QComboBox
 from PyQt5.QtGui import QIcon, QPainter , QMovie, QColor, QTextCharFormat, QFont, QPixmap, QTextCursor, QCursor
 from PyQt5.QtCore import Qt, QSize, QTimer, QPoint, QRect
+import random
 from dotenv import dotenv_values
 import sys
 import os
@@ -38,27 +39,33 @@ def QueryModifier(Query):
     return new_query.capitalize()
 
 def SetMicrophoneStatus(Command):
-    with open(rf'{TempDirPath}\Mic.data', 'w', encoding='utf-8') as file:
+    with open(TempDirectoryPath('Mic.data'), 'w', encoding='utf-8') as file:
         file.write(Command)
 
-def GetMicrophoneStatus():
-    with open(rf'{TempDirPath}\Mic.data', 'r', encoding='utf-8') as file:
-        status = file.read()
-    return status 
+def GetMicButtonStatus():
+    try:
+        with open(TempDirectoryPath('Mic.data'), 'r', encoding='utf-8') as file:
+            Status = file.read()
+    except FileNotFoundError:
+        Status = "False"
+    return Status 
 
 def SetAssistantStatus(Status):
-    with open(rf'{TempDirPath}\AssistantStatus.data', 'r', encoding='utf-8') as file:
+    with open(TempDirectoryPath('Status.data'), 'w', encoding='utf-8') as file:
         file.write(Status)
 
 def GetAssistantStatus():
-    with open(rf'{TempDirPath}\AssistantStatus.data', 'r', encoding='utf-8') as file:
-        status = file.read()
-    return status   
+    try:
+        with open(TempDirectoryPath('Status.data'), 'r', encoding='utf-8') as file:
+            Status = file.read()
+    except FileNotFoundError:
+        Status = "Idle"
+    return Status   
 
-def MicButtonInitialed():
+def SetMicOff():
     SetMicrophoneStatus("False")
 
-def MicButtonClosed():
+def SetMicOn():
     SetMicrophoneStatus("True")
 
 def GraphicDirectoryPath(Filename):
@@ -285,9 +292,9 @@ class ChatSection(QWidget):
                 
             if "User:" in line:
                 clean_msg = line.replace("User:", "").strip()
-                # User Message -> LEFT aligned (Blue)
+                # User Message -> RIGHT aligned (Blue)
                 html = f"""
-                <div style="width: 100%; text-align: left; margin-bottom: 10px;">
+                <div style="width: 100%; text-align: right; margin-bottom: 10px;">
                     <span style="background-color: #0078d4; color: white; padding: 12px 20px; border-radius: 20px; font-family: 'Segoe UI'; font-size: 16px; display: inline-block;">
                         {clean_msg}
                     </span>
@@ -297,10 +304,10 @@ class ChatSection(QWidget):
                 cursor.insertBlock()
                 
             elif "Lisabella:" in line:
-                clean_msg = line.replace("Lisabella:", "").strip()
-                # Assistant Message -> RIGHT aligned (Grey)
+                clean_msg = line.replace("Lisabella:", "").strip().replace("*", "") # Remove markdown stars
+                # Assistant Message -> LEFT aligned (Grey)
                 html = f"""
-                <div style="width: 100%; text-align: right; margin-bottom: 10px;">
+                <div style="width: 100%; text-align: left; margin-bottom: 10px;">
                      <span style="background-color: #333333; color: #e0e0e0; padding: 12px 20px; border-radius: 20px; font-family: 'Segoe UI'; font-size: 16px; display: inline-block;">
                         {clean_msg}
                     </span>
@@ -337,65 +344,102 @@ class InitialScreen(QWidget):
         content_layout.setContentsMargins(0,0,0,0)
         gif_label = QLabel()
         movie  = QMovie(GraphicDirectoryPath('lisabella.gif'))
-        gif_label.setMovie(movie)
-        max_gif_size_H = int(screen_width / 16*9)
-        # movie.setScaledSize(QSize(screen_width, max_gif_size_H)) # Adjusted to not force screen_width
-        movie.setScaledSize(QSize(450, 450)) # Better fit for portrait
-        gif_label.setAlignment(Qt.AlignCenter)
-        movie.start()
-        gif_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setCursor(Qt.ArrowCursor)  # Reset cursor to default
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0) # Remove margins to fill screen
+        
+        # --- DYNAMIC AVATAR SETUP ---
+        self.avatar_label = QLabel(self)
+        self.avatar_label.setAlignment(Qt.AlignCenter)
+        
+        # Load Avatar Images
+        self.img_idle = QPixmap(GraphicDirectoryPath('Avatar_Idle.png'))
+        self.img_blink = QPixmap(GraphicDirectoryPath('Avatar_Blink.png'))
+        self.img_talk = QPixmap(GraphicDirectoryPath('Avatar_Talking.png'))
+        
+        # Scale Images (Make them big and nice)
+        avatar_size = QSize(350, 350) 
+        self.img_idle = self.img_idle.scaled(avatar_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.img_blink = self.img_blink.scaled(avatar_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.img_talk = self.img_talk.scaled(avatar_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+
+        self.avatar_label.setPixmap(self.img_idle) # Start with idle
+        
+        # Blinking Timer
+        self.blink_timer = QTimer(self)
+        self.blink_timer.timeout.connect(self.blink_animation)
+        self.start_blinking()
+        
+        self.is_blinking = False
+        self.is_talking = False
+
+        # Status Label
+        self.status_label = QLabel("Idle")
+        self.status_label.setAlignment(Qt.AlignCenter)
+        self.status_label.setStyleSheet("color: #e0e0e0; font-size: 24px; font-family: 'Segoe UI Light'; margin-top: 20px;")
+        
+        # Microphone Button
         self.icon_label = QLabel()
-        pixmap = QPixmap(GraphicDirectoryPath('Mic_on.png'))
-        new_pixmap = pixmap.scaled(60, 60)
-        self.icon_label.setPixmap(new_pixmap)
-        self.icon_label.setFixedSize(150, 150)
         self.icon_label.setAlignment(Qt.AlignCenter)
-        self.toggled = True
+        self.icon_label.setCursor(Qt.PointingHandCursor)  # Hand cursor for interactivity
+        self.load_icon(GraphicDirectoryPath('Mic_on.png'), 60, 60)
         self.icon_label.mousePressEvent = self.toggle_icon
-        self.label = QLabel("")
-        self.label.setStyleSheet("color: white; font-size: 16px; margin-bottom: 10px; font-family: 'Segoe UI'; font-weight: 500;")
-        content_layout.addWidget(gif_label, alignment=Qt.AlignCenter)
-        content_layout.addWidget(self.label, alignment=Qt.AlignCenter)
-        content_layout.addWidget(self.icon_label, alignment=Qt.AlignCenter)
         
-        # Spacer to push everything up slightly if needed
-        # content_layout.addSpacing(50) 
-        
-        content_layout.setContentsMargins(0,0,0,0)
-        self.setLayout(content_layout)
-        # self.setFixedHeight(screen_height) # REMOVED for resizing
-        # self.setFixedWidth(screen_width) # REMOVED for resizing
-        # Gradient background
-        # Enhanced Gradient background and Typography
-        self.setStyleSheet("""
-            QWidget {
-                background: qradialgradient(cx:0.5, cy:0.5, radius: 0.8, fx:0.5, fy:0.5, stop:0 #1c1c1c, stop:1 #000000);
-            }
-        """)
-        self.label.setStyleSheet("color: #e0e0e0; font-size: 20px; margin-bottom: 15px; font-family: 'Segoe UI Light'; font-weight: bold; letter-spacing: 1px;")
-        
-        # Enhanced Microphone Button Container
+        # Premium Mic Button Styling
         self.icon_label.setStyleSheet("""
             QLabel {
-                background-color: #1a1a1a;
-                border-radius: 75px;
-                border: 2px solid #333333;
+                background-color: #252525;
+                border-radius: 75px; /* Circular */
+                padding: 15px;
+                border: 3px solid #00ff00; /* Green border for active */
+                box-shadow: 0 0 15px #00ff00;
             }
             QLabel:hover {
-                background-color: #252525;
-                border: 2px solid #0078d4;
+                background-color: #303030;
+                box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
             }
         """)
+
+        # Layout Assembly
+        layout.addStretch()
+        layout.addWidget(self.avatar_label)
+        layout.addWidget(self.status_label)
+        layout.addStretch()
+        layout.addWidget(self.icon_label, alignment=Qt.AlignCenter)
+        layout.addStretch()
+        
+        self.setLayout(layout)
+        
+        # Initialize as Active
+        SetMicOn()
+        self.toggled = False # Next click will turn it OFF
+        
+        # Timer for updating status text
         self.timer = QTimer(self)
-        self.timer.timeout.connect(self.SpeechRecoText)
-        self.timer.start(5)
+        self.timer.timeout.connect(self.update_status)
+        self.timer.start(1000)
 
-    def SpeechRecoText(self):
-        with open(TempDirectoryPath('Status.data'), 'r', encoding='utf-8') as file:
-            messages = file.read()
-            self.label.setText(messages)
+    def start_blinking(self):
+        # Wink/Blink every 3-6 seconds
+        interval = random.randint(3000, 6000) 
+        self.blink_timer.start(interval)
 
-    def load_icon(self, path, width=60, height=60):
+    def blink_animation(self):
+        if not self.is_talking:
+            self.avatar_label.setPixmap(self.img_blink)
+            self.is_blinking = True
+            # Close eyes for 200ms then open
+            QTimer.singleShot(200, self.finish_blink)
+        
+        # Reset timer for next random blink
+        self.start_blinking()
+        
+    def finish_blink(self):
+        if not self.is_talking:
+            self.avatar_label.setPixmap(self.img_idle)
+        self.is_blinking = False
+
+    def load_icon(self, path, width, height):
         pixmap = QPixmap(path)
         new_pixmap = pixmap.scaled(width, height)
         self.icon_label.setPixmap(new_pixmap)
@@ -403,8 +447,8 @@ class InitialScreen(QWidget):
     def toggle_icon(self, event=None):
         if self.toggled:
             self.load_icon(GraphicDirectoryPath('Mic_on.png'), 60, 60)
-            MicButtonInitialed()
-            # Visual feedback for Active
+            SetMicOn() 
+            # Visual feedback for Active (Green)
             self.icon_label.setStyleSheet("""
                 QLabel {
                     background-color: #252525;
@@ -416,10 +460,15 @@ class InitialScreen(QWidget):
                     background-color: #303030;
                 }
             """)
+            
+            # Switch Avatar to TALKING/LISTENING
+            self.is_talking = True
+            self.avatar_label.setPixmap(self.img_talk)
+            
         else:
             self.load_icon(GraphicDirectoryPath('Mic_off.png'), 60, 60)
-            MicButtonClosed()
-            # Visual feedback for Inactive
+            SetMicOff()
+            # Visual feedback for Inactive (Grey)
             self.icon_label.setStyleSheet("""
                 QLabel {
                     background-color: #1a1a1a;
@@ -431,7 +480,15 @@ class InitialScreen(QWidget):
                     border: 2px solid #888888;
                 }
             """)
+            # Switch Avatar back to IDLE
+            self.is_talking = False
+            self.avatar_label.setPixmap(self.img_idle)
+            
         self.toggled = not self.toggled
+
+    def update_status(self):
+        status = GetAssistantStatus() 
+        self.status_label.setText(status)
 
 class MessageScreen(QWidget):
     def __init__(self, parent=None):
@@ -575,6 +632,21 @@ class SettingsScreen(QWidget):
             }
         """)
 
+    def RestartApp(self):
+        """ Restarts the entire application using a temporary batch script. """
+        restart_script = os.path.join(os.getcwd(), "Restart.bat")
+        with open(restart_script, "w") as f:
+            f.write("@echo off\n")
+            f.write("echo Restarting Lisabella...\n")
+            f.write("timeout /t 2 /nobreak >nul\n")
+            f.write("taskkill /F /IM python.exe /T >nul 2>&1\n")
+            f.write("taskkill /F /IM pythonw.exe /T >nul 2>&1\n")
+            f.write("start Run.bat\n")
+            f.write("del \"%~f0\"\n") # Self-delete
+            
+        os.startfile(restart_script)
+        QApplication.quit()
+
     def saveSettings(self):
         new_username = self.username_input.text()
         new_assistantname = self.assistant_input.text()
@@ -588,11 +660,11 @@ class SettingsScreen(QWidget):
         with open('.env', 'w') as f:
             for line in lines:
                 if line.startswith('Username='):
-                    f.write(f'Username="{new_username}"\\n')
+                    f.write(f'Username="{new_username}"\n')
                 elif line.startswith('Assistantname='):
-                    f.write(f'Assistantname="{new_assistantname}"\\n')
+                    f.write(f'Assistantname="{new_assistantname}"\n')
                 elif line.startswith('AssistantVoice='):
-                    f.write(f'AssistantVoice="{new_voice}"\\n')
+                    f.write(f'AssistantVoice="{new_voice}"\n')
                 else:
                     f.write(line)
                     
@@ -600,10 +672,10 @@ class SettingsScreen(QWidget):
         env_content = "".join(lines)
         if "AssistantVoice" not in env_content:
              with open('.env', 'a') as f:
-                f.write(f'\\nAssistantVoice="{new_voice}"\\n')
+                f.write(f'\nAssistantVoice="{new_voice}"\n')
 
-        print("Settings saved. Please restart the application.")
-        ShowTextToScreen(f"Settings Saved.\\nUsername: {new_username}\\nAssistant: {new_assistantname}\\nRe-launching required.")
+        print("Settings saved. Restarting...")
+        self.RestartApp()
 
 class CustomTopBar(QWidget):
     def __init__(self, parent=None, stacked_widget=None):
@@ -796,13 +868,11 @@ class MainWindow(QMainWindow):
         stacked_widget = QStackedWidget(self)
         initial_screen = InitialScreen()
         message_screen = MessageScreen()
-        stacked_widget.addWidget(initial_screen)
-        initial_screen = InitialScreen()
-        message_screen = MessageScreen()
         settings_screen = SettingsScreen()
-        stacked_widget.addWidget(initial_screen)
-        stacked_widget.addWidget(message_screen)
-        stacked_widget.addWidget(settings_screen)
+        
+        stacked_widget.addWidget(initial_screen) # Index 0
+        stacked_widget.addWidget(message_screen) # Index 1
+        stacked_widget.addWidget(settings_screen) # Index 2
         
         self.setStyleSheet("background-color: black;")
         top_bar = CustomTopBar(self, stacked_widget)

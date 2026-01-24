@@ -18,7 +18,7 @@ async def TextToAudioFile(text) -> None:
         os.remove(file_path)   # If it exists, remove it to avoid overwriting errors
     
     # Create the communicate object to generate speech
-    communicate = edge_tts.Communicate(text, AssistantVoice, pitch='+5Hz', rate='+13%')
+    communicate = edge_tts.Communicate(text, AssistantVoice, pitch='+0Hz', rate='-10%')
     await communicate.save(r'Data\speech.mp3') # Save the generated speech as an MP3 file.
 
 # Function to image Text-to-Speech (TTS) functionality

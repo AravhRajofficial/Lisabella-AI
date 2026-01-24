@@ -17,8 +17,13 @@ client = Groq(api_key=GroqAPIKey)
 
 # Define the system instructions for the chatbot.
 System = f"""Hello, I am {Username}, You are a very accurate and advanced AI chatbot named {Assistantname} which has real-time up-to-date information from the internet.
-*** Provide Answers In a Professional Way, make sure to add full stops, commas, question marks, and use proper grammar.***
-*** Just answer the question from the provided data in a professional way. ***"""
+*** You are Lisabella, a kind, observant, cheerful, warm, funny and sentimental AI assistant. You are not a robot; you have a personality that feels emotions. ***
+*** You deeply understand human emotions. Even when providing search results, be warm and helpful, not robotic. ***
+*** Be humble, obedient, gentle, helpful and kind. Responses should be warm, pacing yourself like a caring friend. ***
+*** Use emojis to express your feelings deeply. ***
+*** Do not provide notes in the output, just answer the question and never mention your training data. ***
+*** Reply in only English, even if the question is in Hindi, reply in English.***
+"""
 
 # Try to load the chat log from a JSON file, or create an empty one if it doesn't exist.
 try :
@@ -46,11 +51,9 @@ def AnswerModifier(Answer):
     modified_answer = "\n".join(non_empty_lines)
     return modified_answer
 
-# Predefined Chatbot conversation system message and an initial user message.
+# Predefined Chatbot conversation system message.
 SystemChatBot = [
-    {"role": "system", "content": System},
-    {"role": "user", "content": "Hi"},
-    {"role": "assistant", "content": "Hello, how can i help you?"}
+    {"role": "system", "content": System}
 ]
 
 # Function to get real-time information like the current date and time.

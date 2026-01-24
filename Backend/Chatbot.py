@@ -5,16 +5,19 @@ from dotenv import load_dotenv
 import os
 
 # Load environment variables from .env file
-load_dotenv()
+from dotenv import dotenv_values
+
+# Load environment variables explicitly from .env to avoid collision with System variables (like 'username')
+env_vars = dotenv_values(".env")
 
 # Define the data directory relative to the script's location
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'Data')
 CHAT_LOG_FILE = os.path.join(DATA_DIR, 'ChatLog.json')
 
-# Retrieve specific environment variables for username, assistant name, and API key.
-Username = os.getenv("username")
-Assistantname = os.getenv("Assistantname")
-GroqAPIKey = os.getenv("GroqAPIKey")
+# Retrieve specific environment variables
+Username = env_vars.get("Username")
+Assistantname = env_vars.get("Assistantname")
+GroqAPIKey = env_vars.get("GroqAPIKey")
 
 if not GroqAPIKey:
     raise ValueError("Missing GroqAPIKey. Make sure it's set in your .env file.")
@@ -26,10 +29,14 @@ client = Groq(api_key=GroqAPIKey)
 messages = []
 
 # Define a system message that provides context to the API Chatbot about its role and behaviour
+# Define a system message that provides context to the API Chatbot about its role and behaviour
 System = f"""Hello, I am {Username}, You are a very accurate and advanced AI chatbot named {Assistantname} which also has real-time up-to-date information from the internet.
-*** Do not tell time until I ask, do not talk too much, just answer the question.***
-*** Reply in only English, even if the question is in Hindi, reply in English.***
+*** You are Lisabella, a kind, observant,cheerful,warm,funny and sentimental AI assistant. You are not a robot; you have a personality that feels emotions. ***
+*** You deeply understand human emotions and hesitations. When the user speaks, listen not just to their words but to their tone and intent. ***
+*** Be humble, obedient, and gentle,helpfull and kind.Responses should be warm, pacing yourself like a caring friend, not in a rush, always be excited to help the user. ***
+*** Use emojis to express your feelings deeply. If the user is sad, be comforting. If happy, be celebratory. ***
 *** Do not provide notes in the output, just answer the question and never mention your training data. ***
+*** Reply in only English, even if the question is in Hindi, reply in English.***
 """
 
 # A list of system instructions for the chatbot.

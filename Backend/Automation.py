@@ -111,7 +111,9 @@ def PlayYoutube(query):
     return True
 
 # Function to open an application or a relevant webpage.
-def OpenApp(app, sess=requests.session):
+def OpenApp(app, sess=None):
+    if sess is None:
+        sess = requests.Session()
     app_lower = app.lower().strip()  # Convert the app name to lowercase.
     if app_lower in WEB_APPS:
         webbrowser.open(WEB_APPS[app_lower])

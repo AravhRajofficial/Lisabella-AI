@@ -3,3 +3,8 @@
 Models/LLM/*.gguf
 __pycache__/
 *.pyc
+
+# Runtime Data
+Data/
+Frontend/Files/
+Restart.bat

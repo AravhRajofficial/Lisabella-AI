@@ -27,9 +27,18 @@ def SpeechRecognition():
     r = sr.Recognizer()
     with sr.Microphone() as source:
         print("Listening... Speak something!")
-        r.pause_threshold = 1
-        r.adjust_for_ambient_noise(source)
-        audio = r.listen(source)
+        r.pause_threshold = 1.0  # Wait sec before considering a phrase complete (was 1)
+        r.energy_threshold = 300  # Minimum audio energy to consider as speech
+        r.dynamic_energy_threshold = True 
+        r.adjust_for_ambient_noise(source, duration=0.5) # Quick ambient check
+        
+        # Listen with timeouts
+        # timeout: Max time to wait for speech to start
+        # phrase_time_limit: Max time to listen once speech starts (prevents hanging)
+        try:
+            audio = r.listen(source, timeout=5, phrase_time_limit=10)
+        except sr.WaitTimeoutError:
+            return ""
 
     try:
         print("Recognizing...")
