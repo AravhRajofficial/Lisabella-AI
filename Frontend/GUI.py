@@ -80,12 +80,68 @@ def ShowTextToScreen(Text):
     with open (rf"{TempDirPath}\Responses.data", "w", encoding="utf-8") as file:
         file.write(Text)
 
+class ImageContainer(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # Use Grid Layout for Overlapping Widgets (Button over Image)
+        self.layout = QGridLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
+        
+        # Image Label (Background Layer)
+        self.image_lbl = QLabel()
+        self.image_lbl.setScaledContents(True)
+        self.image_lbl.setStyleSheet("border: none; border-radius: 10px; background-color: black;")
+        self.layout.addWidget(self.image_lbl, 0, 0) # Row 0, Col 0
+        
+        # Close Button (Foreground Layer - Top Right)
+        self.close_btn = QPushButton("×")
+        self.close_btn.setCursor(Qt.PointingHandCursor)
+        self.close_btn.setFixedSize(35, 35) # Slightly larger
+        self.close_btn.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(255, 0, 0, 0.7); /* Red transparent */
+                color: white;
+                border: 2px solid white;
+                border-radius: 17px; /* Circular */
+                font-size: 22px;
+                font-weight: bold;
+                padding-bottom: 3px; /* Center 'x' vertically */
+            }
+            QPushButton:hover {
+                background-color: #ff0000;
+            }
+        """)
+        self.close_btn.clicked.connect(self.hide_image)
+        self.layout.addWidget(self.close_btn, 0, 0, alignment=Qt.AlignTop | Qt.AlignRight) # Row 0, Col 0, Top-Right Overlay
+        
+        # No need to addWidget again since QGridLayout handles it automatically with row/col
+        
+        # Style the container
+        self.setStyleSheet("background-color: transparent;")
+        self.setVisible(False)
+        
+        # Style the container
+        self.setStyleSheet("background-color: transparent;")
+        self.setVisible(False)
+
+    def show_image(self, image_path):
+        pixmap = QPixmap(image_path)
+        # Max size logic
+        self.image_lbl.setPixmap(pixmap.scaled(350, 350, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        self.image_lbl.setFixedSize(350, 350)
+        self.setVisible(True)
+        
+    def hide_image(self):
+        self.setVisible(False)
+
+
 class ChatSection(QWidget):
     def __init__(self) :
         super(ChatSection, self).__init__()
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(-10,40,40,100)
-        layout.setSpacing(-100)
+        layout.setContentsMargins(-10, 40, 40, 20) # Reduced bottom margin to 20
+        layout.setSpacing(10) # Reset spacing to normal
         self.chat_text_edit = QTextEdit()
         self.chat_text_edit.setReadOnly(True)
         self.chat_text_edit.setTextInteractionFlags(Qt.NoTextInteraction) # no text interaction
@@ -108,21 +164,37 @@ class ChatSection(QWidget):
         text_color_text = QTextCharFormat()
         text_color_text.setForeground(text_color)
         self.chat_text_edit.setCurrentCharFormat(text_color_text)
+        # Image Label (For Generated Images)
+        # Image Container (For Generated Images)
+        self.image_container = ImageContainer(self)
+        # self.image_label = QLabel() <--- Removed old label
+
+        # GIF Label (Aura)
         self.gif_label = QLabel()
         self.gif_label.setStyleSheet("border: none;")
         movie = QMovie(GraphicDirectoryPath('lisabella.gif'))
-        max_gif_size_W = 480
-        max_gif_size_H = 270
+        max_gif_size_W = 600
+        max_gif_size_H = 335
         movie.setScaledSize(QSize(max_gif_size_W, max_gif_size_H))
         self.gif_label.setAlignment(Qt.AlignRight | Qt.AlignBottom)
         self.gif_label.setMovie(movie)
         movie.start()
-        layout.addWidget(self.gif_label)
+
+        # Horizontal Layout for Image and Aura
+        # Horizontal Layout for Image and Aura
+        self.visual_layout = QHBoxLayout()
+        # Order: Image (Left) -> Space -> Aura (Right)
+        self.visual_layout.addWidget(self.image_container, alignment=Qt.AlignLeft | Qt.AlignBottom) # Image on the left
+        self.visual_layout.addStretch() # Push Aura to the right
+        self.visual_layout.addWidget(self.gif_label, alignment=Qt.AlignRight | Qt.AlignBottom)   # Aura on the right
+
+        layout.addLayout(self.visual_layout)
+
         self.label = QLabel("")
         self.label.setStyleSheet("color: #00ea00; font-size: 16px; margin-right: 195px; border: none; margin-top: -30px; font-family: 'Segoe UI'; font-weight: bold;")
+        self.label.setAlignment(Qt.AlignRight) # Align status text to right
         layout.addWidget(self.label)
-        layout.setSpacing(-10)
-        layout.addWidget(self.gif_label)
+        
         font = QFont()
         font.setPointSize(12)
         font.setFamily("Segoe UI")
@@ -130,6 +202,7 @@ class ChatSection(QWidget):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.loadMessages)
         self.timer.timeout.connect(self.SpeechRecoText)
+        self.timer.timeout.connect(self.checkImageUpdate) # Check for new images
         self.timer.start(5)
         self.chat_text_edit.viewport().installEventFilter(self)
 
@@ -163,15 +236,17 @@ class ChatSection(QWidget):
             QPushButton {
                 background-color: #0078d4;
                 color: white;
-                border-radius: 15px;
-                padding: 8px 15px;
+                border-radius: 25px; /* Fully Rounded */
+                padding: 10px 20px;
                 font-family: 'Segoe UI';
-                font-size: 14px;
+                font-size: 16px; /* Reduced Font */
                 font-weight: bold;
-                min-width: 40px;
+                min-width: 60px; /* Wider */
+                height: 45px; /* Reduced Height to match input ~45px */
             }
             QPushButton:hover {
                 background-color: #106ebe;
+                box-shadow: 0 0 10px #0078d4;
             }
             QPushButton:pressed {
                 background-color: #005a9e;
@@ -243,6 +318,23 @@ class ChatSection(QWidget):
         with open(TempDirectoryPath('Status.data'), 'r', encoding='utf-8') as file:
             messages = file.read()
             self.label.setText(messages)
+
+    def checkImageUpdate(self):
+        try:
+            image_path_file = TempDirectoryPath('Image.data')
+            if os.path.exists(image_path_file):
+                with open(image_path_file, 'r', encoding='utf-8') as file:
+                    image_path = file.read().strip()
+                
+                if image_path and os.path.exists(image_path):
+                    # Show via Container
+                    self.image_container.show_image(image_path)
+                    
+                    # Delete the file so we don't reload it constantly
+                    os.remove(image_path_file)
+        except Exception as e:
+            pass # Fail silently
+
             
     def sendMessage(self):
         text = self.input_field.text().strip()
@@ -857,7 +949,8 @@ class MainWindow(QMainWindow):
         screen_height = desktop.screenGeometry().height()
         
         # Default size: Portrait Mode (450x800), centered
-        default_width = 450
+        # Default size: Landscape Mode (1000x800) to fit Image + Aura comfortably
+        default_width = 1000
         default_height = 800
         x_pos = (screen_width - default_width) // 2
         y_pos = (screen_height - default_height) // 2

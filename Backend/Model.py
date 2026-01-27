@@ -19,12 +19,24 @@ funcs =[
 def FirstLayerDMM(prompt: str):
     # Heuristic: If it looks like a question, treat it as general query immediately.
     # This prevents the LLM from trying to "play" or "open" things for simple questions.
-    question_starters = ["what", "who", "how", "why", "where", "when", "tell me", "explain", "hey", "hi", "hello"]
     lower_prompt = prompt.lower().strip()
-    
+
+    # Special Heuristic for Image Generation (Bypass LLM for speed/reliability)
+    # PRIORITIZE THIS: Check for image keywords BEFORE checking if it's a question.
+    if "generate" in lower_prompt and ("image" in lower_prompt or "picture" in lower_prompt or "photo" in lower_prompt):
+        return [f"generate image {lower_prompt}"]
+    if "create" in lower_prompt and ("image" in lower_prompt or "picture" in lower_prompt):
+        return [f"generate image {lower_prompt}"]
+    if "make" in lower_prompt and ("image" in lower_prompt or "picture" in lower_prompt):
+        return [f"generate image {lower_prompt}"]
+
+    question_starters = ["what", "who", "how", "why", "where", "when", "tell me", "explain", "hey", "hi", "hello"]
+
     for starter in question_starters:
         if lower_prompt.startswith(starter):
             return [f"general {lower_prompt}"]
+
+
 
     system_prompt = """
     You are a decision-making model.

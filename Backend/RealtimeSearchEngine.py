@@ -78,6 +78,9 @@ def information():
 #function to handle real-time search and response generation.
 def RealtimeSearchEngine(prompt):
     global SystemChatBot, messages
+    
+    if not prompt or not prompt.strip():
+        return "I am listening."
 
     # load the chat log from the JSON file.
     with open(r"Data\ChatLog.json", "r") as f:

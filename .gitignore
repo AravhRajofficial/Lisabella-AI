@@ -3,7 +3,19 @@
 Models/LLM/*.gguf
 __pycache__/
 *.pyc
+# OS Generated Files
+.DS_Store
+Thumbs.db
+Desktop.ini
 
+# Editor Directories
+.vscode/
+.idea/
+
+# Build & Dist
+build/
+dist/
+*.spec
 # Runtime Data
 Data/
 Frontend/Files/

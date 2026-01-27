@@ -2,8 +2,8 @@ import time
 import os
 import sys
 import asyncio
-import socket
 from pathlib import Path
+import socket
 
 # Add the project root to the path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -13,6 +13,7 @@ from Backend.Model import FirstLayerDMM
 from Backend.TextToSpeech import TextToSpeech
 from Backend.Automation import Automation
 from Backend.RealtimeSearchEngine import RealtimeSearchEngine
+from Backend.ImageGeneration import GenerateImages
 
 PRIORITY = [
     "exit",
@@ -174,8 +175,12 @@ def main():
         if not IsTextInput:
              ShowTextToScreen(f"User: {query}")
 
+        # Clean query for classification (Remove Wake Word)
+        # This prevents "Lisa generate image" from being seen as "General" because of the name.
+        cleaned_query_for_model = query.lower().replace("lisa", "").replace("lisabella", "").strip(" .,")
+        
         # Decision making
-        tasks = FirstLayerDMM(query)
+        tasks = FirstLayerDMM(cleaned_query_for_model)
 
         # Route & Execute
         if tasks:
@@ -192,6 +197,11 @@ def main():
                 print(f"General query: {primary_task}")
                 # Use Realtime Search Engine
                 query_text = primary_task.replace("general", "").strip()
+                
+                # CRITICAL FIX: If query is empty (e.g. just "Lisa"), ignore it.
+                if not query_text:
+                    continue
+
                 response_text = RealtimeSearchEngine(query_text)
                 
                 # Display and Speak
@@ -203,9 +213,20 @@ def main():
             elif primary_task.startswith("generate image"):
                 prompt = primary_task.replace("generate image", "").strip()
                 print(f"Generating image for prompt: {prompt}")
-                with open(os.path.join("Frontend", "Files", "ImageGeneration.data"), "w") as f:
-                    f.write(f"{prompt}")
                 ShowTextToScreen(f"Lisabella: Generating image for {prompt}...")
+                image_files = GenerateImages(prompt)
+                
+                if image_files:
+                    # Capture the first image path and send it to the GUI
+                    primary_image_path = image_files[0]
+                    with open(os.path.join("Frontend", "Files", "Image.data"), "w") as f:
+                        f.write(primary_image_path)
+                        
+                    ShowTextToScreen(f"Lisabella: Image generated.")
+                    TextToSpeech("Here is the image you asked for.")
+                else:    
+                    ShowTextToScreen(f"Lisabella: Failed to generate images.")
+                    TextToSpeech("Sorry, I could not generate the images.")
             
             # ----AUTOMATION TASKS-----
             elif primary_task.startswith(("open", "close", "play", "system", "content", "google search", "youtube search")):

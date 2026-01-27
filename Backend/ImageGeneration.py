@@ -31,8 +31,15 @@ def open_images(prompt):
         except (IOError, FileNotFoundError):
             print(f"Unable to open or find {image_path}")
 
-# API details for the Hugging Face stable diffusion model
-API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
+# List of API URLs (Fallback Strategy)
+# If the first one fails (410 Gone), the code will automatically try the next one.
+API_URLS = [
+    "https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0",
+    "https://router.huggingface.co/hf-inference/models/prompthero/openjourney-v4",
+    "https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-2-1",
+    "https://router.huggingface.co/hf-inference/models/runwayml/stable-diffusion-v1-5",
+    "https://router.huggingface.co/hf-inference/models/CompVis/stable-diffusion-v1-4"
+]
 
 # Get the API key, with a fallback to empty string if not found
 huggingface_api_key = get_key('.env', 'HuggingFaceAPIKey')
@@ -41,21 +48,33 @@ if not huggingface_api_key:
     print("Please add your HuggingFaceAPIKey to the .env file.")
     huggingface_api_key = ""
 
-headers = {"Authorization": f"bearer {huggingface_api_key}"}
+headers = {"Authorization": f"Bearer {huggingface_api_key}"}
 
 # Async function to send a query to the Hugging Face API
+# Now supports retrying with different models
 async def query(payload):
     if not huggingface_api_key:
         print("Error: Cannot query Hugging Face API without an API key.")
         return None
         
-    try:
-        response = await asyncio.to_thread(requests.post, API_URL, headers=headers, json=payload)
-        response.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
-        return response.content
-    except requests.exceptions.RequestException as e:
-        print(f"API request failed: {e}")
-        return None
+    for url in API_URLS:
+        try:
+            print(f"Attempting with model: {url.split('/')[-2]}/{url.split('/')[-1]}")
+            response = await asyncio.to_thread(requests.post, url, headers=headers, json=payload)
+            
+            # If successful, return the content immediately
+            if response.status_code == 200:
+                print("Success!")
+                return response.content
+            
+            # If error is 410 (Gone) or 503 (Loading), print and try next
+            print(f"Failed with status {response.status_code}: {response.text}") # Print FULL error
+            
+        except requests.exceptions.RequestException as e:
+            print(f"API request failed: {e}")
+            
+    print("All models failed.")
+    return None
 
 # Async function to generate image based on the given prompt
 async def generate_images(prompt: str):
@@ -65,17 +84,19 @@ async def generate_images(prompt: str):
         return False
         
     tasks = []
-    print("Creating 4 image generation tasks...")
-    # First, create all the tasks
+    print(f"Starting generation for: '{prompt}'")
+    
+    # We will generate 4 images. 
+    # Since we have a fallback loop inside 'query', each task will independently find a working model.
     for i in range(4):
         payload = {
-            "inputs": f"{prompt}, 4k, sharp, high quality, high resolution, seed={randint(0, 100000)}"
+            "inputs": f"{prompt}, 4k, sharp, high quality, realistic, seed={randint(0, 100000)}"
         }
         task = asyncio.create_task(query(payload))
         tasks.append(task)
 
     # Then, gather them all at once
-    print("Generating 4 images concurrently...")
+    print("Generating 4 images concurrently (with auto-fallback)...")
     image_bytes_list = await asyncio.gather(*tasks)
     print("Image data received. Saving files...")
 
@@ -88,7 +109,7 @@ async def generate_images(prompt: str):
     os.makedirs("Data", exist_ok=True)
 
     # Then, save all the files
-    success_count = 0
+    saved_files = []
     for i, image_bytes in enumerate(image_bytes_list):
         if image_bytes:
             file_path = os.path.join("Data", f"{prompt.replace(' ', '_')}{i+1}.jpg")
@@ -96,21 +117,21 @@ async def generate_images(prompt: str):
                 with open(file_path, "wb") as f:
                     f.write(image_bytes)
                 print(f"Saved image {i+1} to {file_path}")
-                success_count += 1
+                saved_files.append(os.path.abspath(file_path))
             except IOError as e:
                 print(f"Failed to save image {i+1}: {e}")
     
-    return success_count > 0  # Return True if at least one image was saved
+    return saved_files 
 
 # Wrapper function to generate and open images
 def GenerateImages(prompt:str):
-    success = asyncio.run(generate_images(prompt))  # Run the async image generation
-    if success:
-        open_images(prompt) # open the generated images
-        return True
+    generated_files = asyncio.run(generate_images(prompt))  # Run the async image generation
+    if generated_files:
+        # open_images(prompt) # DISABLED: We now show in GUI
+        return generated_files # Return paths to Main
     else:
-        print("Image generation failed. Cannot open images.")
-        return False
+        print("Image generation failed.")
+        return []
 
 # Main loop to monitor for image generation requests
 if __name__ == "__main__":
@@ -130,10 +151,10 @@ if __name__ == "__main__":
             # if the status indicates an image generation request
             if status.lower() == "true":
                 print(f"Request received. Generating images for prompt: '{prompt}'")
-                success = GenerateImages(prompt=prompt)
+                files = GenerateImages(prompt=prompt)
 
                 # Reset the status in the file after generating images
-                if success:
+                if files:
                     print("Processing complete. Resetting status and exiting.")
                 else:
                     print("Image generation failed. Resetting status and exiting.")
