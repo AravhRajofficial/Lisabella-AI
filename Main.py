@@ -14,6 +14,7 @@ from Backend.TextToSpeech import TextToSpeech
 from Backend.Automation import Automation
 from Backend.RealtimeSearchEngine import RealtimeSearchEngine
 from Backend.ImageGeneration import GenerateImages
+from Backend.SentimentAnalysis.Heart import EmotionalCore # Import Heart
 
 PRIORITY = [
     "exit",
@@ -84,6 +85,9 @@ def main():
     """ Main function to run the Lisabella AI assistant."""
     check_single_instance() # <--- VERIFY SINGLE INSTANCE
     print("Lisabella AI started. Listening for commands...")
+    
+    # Initialize Heart
+    heart = EmotionalCore()
     
     # WAKE WORD STATE
     ConversationMode = False
@@ -201,13 +205,34 @@ def main():
                 # CRITICAL FIX: If query is empty (e.g. just "Lisa"), ignore it.
                 if not query_text:
                     continue
+                
+                # Update Heart
+                heart.analyze_input(query_text)
+                emotion_prompt = heart.get_system_instructions()
 
-                response_text = RealtimeSearchEngine(query_text)
+                response_text = RealtimeSearchEngine(query_text, heart_instruction=emotion_prompt)
                 
                 # Display and Speak
                 SetAssistantStatus("Replying...")
                 ShowTextToScreen(f"Lisabella: {response_text}")
-                TextToSpeech(response_text)
+                
+                # --- DYNAMIC VOICE TEMPERING ---
+                # Calculate Rate and Pitch based on emotional state
+                voice_rate_val = 0
+                voice_pitch_val = 0
+                
+                # Energy affects Speed
+                if heart.state["energy"] > 0.8: voice_rate_val = 15 # Fast
+                elif heart.state["energy"] < 0.4: voice_rate_val = -10 # Slow
+                
+                # Happiness affects Pitch
+                if heart.state["happiness"] > 0.8: voice_pitch_val = 5 # Higher
+                elif heart.state["happiness"] < 0.4: voice_pitch_val = -5 # Lower
+                
+                voice_rate = f"{'+' if voice_rate_val >= 0 else ''}{voice_rate_val}%"
+                voice_pitch = f"{'+' if voice_pitch_val >= 0 else ''}{voice_pitch_val}Hz"
+                
+                TextToSpeech(response_text, rate=voice_rate, pitch=voice_pitch)
 
             # -----IMAGE GENERATION-----
             elif primary_task.startswith("generate image"):

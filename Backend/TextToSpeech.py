@@ -11,18 +11,18 @@ env_vars = dotenv_values(".env")
 AssistantVoice = env_vars.get("AssistantVoice", "en-US-AriaNeural") # Get the AssistantVoice from the env file.
 
 # Asynchrnous function to convert text to an audio file
-async def TextToAudioFile(text) -> None:
+async def TextToAudioFile(text, rate='+0%', pitch='+0Hz') -> None:
     file_path = r"Data\speech.mp3"  # Define the path where the speech file will be saved
 
     if os.path.exists(file_path):
         os.remove(file_path)   # If it exists, remove it to avoid overwriting errors
     
     # Create the communicate object to generate speech
-    communicate = edge_tts.Communicate(text, AssistantVoice, pitch='+0Hz', rate='+0%')
+    communicate = edge_tts.Communicate(text, AssistantVoice, pitch=pitch, rate=rate)
     await communicate.save(r'Data\speech.mp3') # Save the generated speech as an MP3 file.
 
 # Function to image Text-to-Speech (TTS) functionality
-def TTS(Text, func=lambda r=None: True):
+def TTS(Text, func=lambda r=None: True, rate='+0%', pitch='+0Hz'):
     try:
         print("TTS: Initializing mixer...")
         # Initialize pygame mixer for audio playback
@@ -30,7 +30,7 @@ def TTS(Text, func=lambda r=None: True):
 
         print("TTS: Generating audio file...")
         # Convert text to an audio file asynchronously
-        asyncio.run(TextToAudioFile(Text))
+        asyncio.run(TextToAudioFile(Text, rate, pitch))
         print("TTS: Audio file generated.")
 
         # Load the generated speech file into pygame mixer
@@ -70,7 +70,7 @@ def TTS(Text, func=lambda r=None: True):
             print(f"Error in final block: {e}")
 
 # Function to manage Text-to-Speech with additional response for long text.
-def TextToSpeech(Text, func=lambda r=None: True):
+def TextToSpeech(Text, func=lambda r=None: True, rate='+0%', pitch='+0Hz'):
     Data = str(Text).split(".")  # Split the text by periods into list of sentences
 
     # List of predefined responses for cases where the text is too long
@@ -99,11 +99,11 @@ def TextToSpeech(Text, func=lambda r=None: True):
 
     # If the text is very long (more than 4 sentences and 250 characters), add a response message
     if len(Data) > 4 and len(Text) >= 250:
-        TTS(" ".join(Text.split(".")[0:2]) +". " + random.choice(responses), func)
+        TTS(" ".join(Text.split(".")[0:2]) +". " + random.choice(responses), func, rate, pitch)
     
     # Otherwise, just play the whole text 
     else:
-        TTS(Text, func)
+        TTS(Text, func, rate, pitch)
 
 # Main execution loop
 if __name__ == "__main__":

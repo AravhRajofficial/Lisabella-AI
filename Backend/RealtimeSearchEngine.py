@@ -76,7 +76,7 @@ def information():
     return date
 
 #function to handle real-time search and response generation.
-def RealtimeSearchEngine(prompt):
+def RealtimeSearchEngine(prompt, heart_instruction=None):
     global SystemChatBot, messages
     
     if not prompt or not prompt.strip():
@@ -89,11 +89,16 @@ def RealtimeSearchEngine(prompt):
 
     # Add Google search results to the system chatbot messages.
     SystemChatBot.append({"role": "system", "content": Googlesearch(prompt)})
+    
+    # Emotional Context Injection
+    conversation_context = SystemChatBot + [{"role": "system", "content": information()}]
+    if heart_instruction:
+        conversation_context.append({"role": "system", "content": heart_instruction})
 
     # Generate a response using the Groq client.
     completion = client.chat.completions.create(
         model= "llama-3.1-8b-instant",
-        messages=SystemChatBot + [{"role": "system", "content": information()}] + messages,
+        messages=conversation_context + messages,
         temperature=0.7,
         max_tokens=2048,
         top_p=1,
